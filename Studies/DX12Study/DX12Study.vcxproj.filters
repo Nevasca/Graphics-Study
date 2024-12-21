@@ -13,10 +13,64 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{08ed90b8-0fca-4a0c-b202-23ddd7955e39}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DX12Study.cpp">
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\DX12Study.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\DX12Study.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\BoxApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Dependencies\CommonDX12\d3dApp.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Dependencies\CommonDX12\DDSTextureLoader.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Dependencies\CommonDX12\d3dUtil.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Dependencies\CommonDX12\MathHelper.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Dependencies\CommonDX12\GeometryGenerator.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Dependencies\CommonDX12\GameTimer.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Dependencies\CommonDX12\Camera.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DX12Study.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="small.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="DX12Study.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>
