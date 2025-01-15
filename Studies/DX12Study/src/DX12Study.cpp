@@ -1,7 +1,6 @@
 // DX12Study.cpp : Defines the entry point for the application.
 //
 
-#if 0
 #include "framework.h"
 #include "DX12Study.h"
 
@@ -179,4 +178,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     }
     return (INT_PTR)FALSE;
 }
-#endif
