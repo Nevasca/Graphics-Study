@@ -152,7 +152,10 @@
     <ClCompile Include="..\Dependencies\CommonDX12\GameTimer.cpp" />
     <ClCompile Include="..\Dependencies\CommonDX12\GeometryGenerator.cpp" />
     <ClCompile Include="..\Dependencies\CommonDX12\MathHelper.cpp" />
-    <ClCompile Include="src\BoxApp.cpp" />
+    <ClCompile Include="src\BoxApp.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\DX12Study.cpp" />
   </ItemGroup>
   <ItemGroup>
