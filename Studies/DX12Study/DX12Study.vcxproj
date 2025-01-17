@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\DX12Study.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
@@ -152,6 +153,7 @@
     <ClCompile Include="..\Dependencies\CommonDX12\GameTimer.cpp" />
     <ClCompile Include="..\Dependencies\CommonDX12\GeometryGenerator.cpp" />
     <ClCompile Include="..\Dependencies\CommonDX12\MathHelper.cpp" />
+    <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\BoxApp.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>

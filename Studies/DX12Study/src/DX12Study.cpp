@@ -4,6 +4,8 @@
 #include "framework.h"
 #include "DX12Study.h"
 
+#include "Application.h"
+
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -39,6 +41,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DX12STUDY));
+
+    Studies::Application application{};
+    application.Initialize();
 
     MSG msg;
 
