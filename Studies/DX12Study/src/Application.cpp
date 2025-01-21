@@ -13,6 +13,7 @@ namespace Studies
         CreateDevice();
         CreateFence();
         CacheDescriptorSizes();
+        Check4xMsaaQuality();
     }
 
     void Application::CreateDevice()
@@ -57,6 +58,28 @@ namespace Studies
 
         // Constant buffer, shader resource and unordered access resource
         m_CbvSrvDescriptorSize = m_Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+
+    void Application::Check4xMsaaQuality()
+    {
+        // From DX11 onwards, 4x Msaa support is guaranteed,
+        // but we still need to check in what quality it supports
+
+        D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels;
+        msQualityLevels.Format = m_BackBufferFormat;
+        msQualityLevels.SampleCount = 4;
+        msQualityLevels.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
+        msQualityLevels.NumQualityLevels = 0;
+
+        ThrowIfFailed(m_Device->CheckFeatureSupport(
+            D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS,
+            &msQualityLevels,
+            sizeof(msQualityLevels)));
+
+        m_4xMsaaQuality = msQualityLevels.NumQualityLevels;
+
+        // Because 4x MSAA is always supported (from DX11 devices onwards), quality level should be grater than 0
+        assert(m_4xMsaaQuality > 0 && "Unexpected MSAA quality level");
     }
 
 #if defined(DEBUG) || defined(_DEBUG)
