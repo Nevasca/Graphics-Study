@@ -17,6 +17,10 @@ namespace Studies
         Microsoft::WRL::ComPtr<IDXGIFactory4> m_DXGIFactory{};
         Microsoft::WRL::ComPtr<ID3D12Fence> m_Fence{};
 
+        Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_CommandQueue{};
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_CommandListAllocator{};
+        Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_CommandList{};
+
         UINT m_RtvDescriptorSize{0};
         UINT m_DsvDescriptorSize{0};
         UINT m_CbvSrvDescriptorSize{0};
@@ -28,6 +32,7 @@ namespace Studies
         void CreateFence();
         void CacheDescriptorSizes();
         void Check4xMsaaQuality();
+        void CreateCommandQueue();
 
 #if defined(DEBUG) || defined(_DEBUG)
         void EnableDebugLayer();

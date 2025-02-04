@@ -14,6 +14,7 @@ namespace Studies
         CreateFence();
         CacheDescriptorSizes();
         Check4xMsaaQuality();
+        CreateCommandQueue();
     }
 
     void Application::CreateDevice()
@@ -80,6 +81,28 @@ namespace Studies
 
         // Because 4x MSAA is always supported (from DX11 devices onwards), quality level should be grater than 0
         assert(m_4xMsaaQuality > 0 && "Unexpected MSAA quality level");
+    }
+
+    void Application::CreateCommandQueue()
+    {
+        D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+
+        ThrowIfFailed(m_Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_CommandQueue)));
+
+        ThrowIfFailed(m_Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_CommandListAllocator)));
+
+        ThrowIfFailed(m_Device->CreateCommandList(
+            0,
+            D3D12_COMMAND_LIST_TYPE_DIRECT,
+            m_CommandListAllocator.Get(),
+            nullptr, // Right now we are not issuing commands, just showing how to initialize D3D12, so using null pipeline state for now.
+            IID_PPV_ARGS(&m_CommandList)));
+
+        // Start off in closed state.
+        // We are going to call Reset() on it on first time and it needs to be in closed state
+        m_CommandList->Close();
     }
 
 #if defined(DEBUG) || defined(_DEBUG)
