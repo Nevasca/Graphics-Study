@@ -20,6 +20,8 @@ namespace Studies
         Check4xMsaaQuality();
         CreateCommandQueue();
         CreateSwapChain();
+        CreateRenderTargetDescriptorHeap();
+        CreateDepthStencilDescriptorHeap();
     }
 
     void Application::CreateDevice()
@@ -146,6 +148,46 @@ namespace Studies
             m_CommandQueue.Get(), // Swapchain uses queue to perform flush
             &swapChainDesc,
             m_SwapChain.GetAddressOf()));
+    }
+
+    void Application::CreateRenderTargetDescriptorHeap()
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC renderTargetViewDesc = {};
+        renderTargetViewDesc.NumDescriptors = SWAPCHAIN_BUFFER_COUNT;
+        renderTargetViewDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+        renderTargetViewDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        renderTargetViewDesc.NodeMask = 0;
+
+        ThrowIfFailed(m_Device->CreateDescriptorHeap(
+            &renderTargetViewDesc,
+            IID_PPV_ARGS(m_RenderTargetViewHeap.GetAddressOf()))); 
+    }
+
+    void Application::CreateDepthStencilDescriptorHeap()
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC depthStencilViewDesc = {};
+        depthStencilViewDesc.NumDescriptors = 1;
+        depthStencilViewDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+        depthStencilViewDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        depthStencilViewDesc.NodeMask = 0;
+
+        ThrowIfFailed(m_Device->CreateDescriptorHeap(
+            &depthStencilViewDesc,
+            IID_PPV_ARGS(m_DepthStencilViewHeap.GetAddressOf())));
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentBackBufferView()
+    {
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+            m_RenderTargetViewHeap->GetCPUDescriptorHandleForHeapStart(),
+            m_CurrentBackBufferIndex,
+            m_RtvDescriptorSize);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentDepthStencilView()
+    {
+        return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+            m_DepthStencilViewHeap->GetCPUDescriptorHandleForHeapStart());
     }
 
 #if defined(DEBUG) || defined(_DEBUG)
