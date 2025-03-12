@@ -48,6 +48,7 @@ namespace Studies
         void CreateSwapChain();
         void CreateRenderTargetDescriptorHeap();
         void CreateDepthStencilDescriptorHeap();
+        void CreateRenderTargetView();
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferView();
         D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentDepthStencilView();

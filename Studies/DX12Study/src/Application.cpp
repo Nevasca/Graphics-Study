@@ -22,6 +22,7 @@ namespace Studies
         CreateSwapChain();
         CreateRenderTargetDescriptorHeap();
         CreateDepthStencilDescriptorHeap();
+        CreateRenderTargetView();
     }
 
     void Application::CreateDevice()
@@ -174,6 +175,30 @@ namespace Studies
         ThrowIfFailed(m_Device->CreateDescriptorHeap(
             &depthStencilViewDesc,
             IID_PPV_ARGS(m_DepthStencilViewHeap.GetAddressOf())));
+    }
+
+    void Application::CreateRenderTargetView()
+    {
+        Microsoft::WRL::ComPtr<ID3D12Resource> swapChainBuffers[SWAPCHAIN_BUFFER_COUNT];
+        CD3DX12_CPU_DESCRIPTOR_HANDLE renderTargetViewHeapHandle(m_RenderTargetViewHeap->GetCPUDescriptorHandleForHeapStart());
+
+        for (UINT i = 0; i < SWAPCHAIN_BUFFER_COUNT; i++)
+        {
+            // Get the ith buffer in the swap chain
+            ThrowIfFailed(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&swapChainBuffers[i])));
+
+            // Create a render target view (descriptor) to it
+            // Since we've created a typed back buffer, we can leave the descriptor parameter as nullptr
+            // If we had created as typeless, we must pass a descriptor param
+            m_Device->CreateRenderTargetView(swapChainBuffers[i].Get(), nullptr, renderTargetViewHeapHandle);
+
+            // Next entry in heap
+            renderTargetViewHeapHandle.Offset(1, m_RtvDescriptorSize);
+        }
+
+        // m_SwapChain->GetBuffer increases the COM reference count to the back buffer,
+        // so we must release them when we are finished with it 
+        // but as we are using ComPtr for getting it, it will auto call release when getting out of scope here (as smart pointers do) 
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentBackBufferView()
