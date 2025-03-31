@@ -23,6 +23,7 @@ namespace Studies
         CreateRenderTargetDescriptorHeap();
         CreateDepthStencilDescriptorHeap();
         CreateRenderTargetView();
+        CreateDepthStencilView();
     }
 
     void Application::CreateDevice()
@@ -179,18 +180,17 @@ namespace Studies
 
     void Application::CreateRenderTargetView()
     {
-        Microsoft::WRL::ComPtr<ID3D12Resource> swapChainBuffers[SWAPCHAIN_BUFFER_COUNT];
         CD3DX12_CPU_DESCRIPTOR_HANDLE renderTargetViewHeapHandle(m_RenderTargetViewHeap->GetCPUDescriptorHandleForHeapStart());
 
         for (UINT i = 0; i < SWAPCHAIN_BUFFER_COUNT; i++)
         {
             // Get the ith buffer in the swap chain
-            ThrowIfFailed(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&swapChainBuffers[i])));
+            ThrowIfFailed(m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&m_SwapChainBuffers[i])));
 
             // Create a render target view (descriptor) to it
             // Since we've created a typed back buffer, we can leave the descriptor parameter as nullptr
             // If we had created as typeless, we must pass a descriptor param
-            m_Device->CreateRenderTargetView(swapChainBuffers[i].Get(), nullptr, renderTargetViewHeapHandle);
+            m_Device->CreateRenderTargetView(m_SwapChainBuffers[i].Get(), nullptr, renderTargetViewHeapHandle);
 
             // Next entry in heap
             renderTargetViewHeapHandle.Offset(1, m_RtvDescriptorSize);
@@ -201,7 +201,57 @@ namespace Studies
         // but as we are using ComPtr for getting it, it will auto call release when getting out of scope here (as smart pointers do) 
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentBackBufferView()
+    void Application::CreateDepthStencilView()
+    {
+        D3D12_RESOURCE_DESC depthStencilViewDesc = {};
+        depthStencilViewDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        depthStencilViewDesc.Alignment = 0;
+        depthStencilViewDesc.Width = m_ClientWidth;
+        depthStencilViewDesc.Height = m_ClientHeight;
+        depthStencilViewDesc.DepthOrArraySize = 1;
+        depthStencilViewDesc.MipLevels = 1; // For depth and stencil textures, we only need 1 mipmap level
+        depthStencilViewDesc.Format = m_DepthStencilFormat;
+
+        // TODO: investigate how to create swapchain and depth stencil view with MSAA in modern swapchain
+        depthStencilViewDesc.SampleDesc.Count = 1;
+        depthStencilViewDesc.SampleDesc.Quality = 0;
+
+        depthStencilViewDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        depthStencilViewDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+        D3D12_CLEAR_VALUE clearValue = {};
+        clearValue.Format = m_DepthStencilFormat;
+        clearValue.DepthStencil.Depth = 1.0f;
+        clearValue.DepthStencil.Stencil = 0;
+
+        // There are other more advanced properties to set on heap properties
+        // for now we only care about the type (D3D12_HEAP_TYPE_DEFAULT), so we can use the helper constructor
+        CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+
+        ThrowIfFailed(m_Device->CreateCommittedResource(
+            &heapProperties,
+            D3D12_HEAP_FLAG_NONE,
+            &depthStencilViewDesc,
+            D3D12_RESOURCE_STATE_COMMON,
+            &clearValue,
+            IID_PPV_ARGS(m_DepthStencilBuffer.GetAddressOf())));
+
+        // Create descriptor to mip level 0 of entire resource using the format of the resource
+        m_Device->CreateDepthStencilView(
+            m_DepthStencilBuffer.Get(),
+            nullptr, // Since the resource was created with a typed format, this param here can be nullptr
+            GetCurrentDepthStencilView());
+
+        // Transition the resource from its initial state to be used as a depth buffer
+        CD3DX12_RESOURCE_BARRIER transition = CD3DX12_RESOURCE_BARRIER::Transition(
+                m_DepthStencilBuffer.Get(),
+                D3D12_RESOURCE_STATE_COMMON,
+                D3D12_RESOURCE_STATE_DEPTH_WRITE);
+        
+        m_CommandList->ResourceBarrier(1, &transition);
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentBackBufferView() const
     {
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(
             m_RenderTargetViewHeap->GetCPUDescriptorHandleForHeapStart(),
@@ -209,10 +259,9 @@ namespace Studies
             m_RtvDescriptorSize);
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentDepthStencilView()
+    D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentDepthStencilView() const
     {
-        return CD3DX12_CPU_DESCRIPTOR_HANDLE(
-            m_DepthStencilViewHeap->GetCPUDescriptorHandleForHeapStart());
+        return m_DepthStencilViewHeap->GetCPUDescriptorHandleForHeapStart();
     }
 
 #if defined(DEBUG) || defined(_DEBUG)
