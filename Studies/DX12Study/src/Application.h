@@ -54,6 +54,8 @@ namespace Studies
         void CreateDepthStencilDescriptorHeap();
         void CreateRenderTargetView();
         void CreateDepthStencilView();
+        void ResizeViewport();
+        void ResizeScissors();
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferView() const;
         D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentDepthStencilView() const;

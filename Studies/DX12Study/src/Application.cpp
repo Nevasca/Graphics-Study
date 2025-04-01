@@ -251,6 +251,39 @@ namespace Studies
         m_CommandList->ResourceBarrier(1, &transition);
     }
 
+    void Application::ResizeViewport()
+    {
+        D3D12_VIEWPORT viewport = {};
+        viewport.TopLeftX = 0;
+        viewport.TopLeftY = 0;
+        viewport.Width = static_cast<float>(m_ClientWidth);
+        viewport.Height = static_cast<float>(m_ClientHeight);
+        viewport.MinDepth = 0.0f;
+        viewport.MaxDepth = 1.0f;
+
+        // Using more than one on 'NumViewports' param if for advanced effects
+        m_CommandList->RSSetViewports(1, &viewport);
+
+        // The viewport needs to be reset whenever the command list is reset
+        
+        // A cool thing to do with viewports is split screen,
+        // we could have a viewport on half left for player 1 and right left for player 2
+    }
+
+    void Application::ResizeScissors()
+    {
+        D3D12_RECT scissorRect = {};
+        scissorRect.left = 0;
+        scissorRect.top = 0;
+        scissorRect.right = m_ClientWidth;
+        scissorRect.bottom = m_ClientHeight;
+
+        // Using more than one on 'NumRects' param if for advanced effects
+        m_CommandList->RSSetScissorRects(1, &scissorRect);
+
+        // The scissors needs to be reset whenever the command list is reset
+    }
+
     D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentBackBufferView() const
     {
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(
