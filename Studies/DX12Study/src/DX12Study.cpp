@@ -46,15 +46,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     Studies::Application application{};
     application.Initialize(g_hWnd);
 
-    MSG msg;
+    MSG msg{};
 
     // Main message loop:
-    while (GetMessage(&msg, nullptr, 0, 0))
+    while (msg.message != WM_QUIT)
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+        if(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+        else
+        {
+            application.Tick();
         }
     }
 

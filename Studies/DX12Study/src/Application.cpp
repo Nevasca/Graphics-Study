@@ -26,6 +26,11 @@ namespace Studies
         CreateDepthStencilView();
     }
 
+    void Application::Tick()
+    {
+        m_Timer.Tick();
+    }
+
     void Application::CreateDevice()
     {
         ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&m_DXGIFactory)));

@@ -3,6 +3,7 @@
 #include <wrl.h>
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include "GameTime.h"
 
 namespace Studies
 {
@@ -10,6 +11,7 @@ namespace Studies
     {
     public:
         void Initialize(HWND mainWindow);
+        void Tick();
 
     private:
 
@@ -63,5 +65,8 @@ namespace Studies
 #if defined(DEBUG) || defined(_DEBUG)
         void EnableDebugLayer();
 #endif
+
+    private:
+        GameTime m_Timer{};
     };
 }
