@@ -12,6 +12,7 @@ namespace Studies
         float GetTime() const;
         void Start();
         void Stop();
+        void Reset();
         void Tick();
 
     private:
@@ -20,7 +21,7 @@ namespace Studies
         double m_DeltaTime{-1.0f};
 
         int64_t m_BaseTime{0};
-        int64_t m_PauseTime{0};
+        int64_t m_PausedTime{0};
         int64_t m_StopTime{0};
         int64_t m_PreviousTime{0};
         int64_t m_CurrentTime{0};

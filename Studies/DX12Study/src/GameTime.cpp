@@ -18,16 +18,72 @@ namespace Studies
 
     float GameTime::GetTime() const
     {
-        // TODO
-        return 0;
+        if (bIsStopped)
+        {
+            // If we are stopped, do not count the time that has passed since we stopped.
+            // Moreover, if we previously already had a pause, the distance 
+            // mStopTime - mBaseTime includes paused time, which we do not want to count.
+            // To correct this, we can subtract the paused time from mStopTime:  
+            //
+            //                     |<--paused time-->|
+            // ----*---------------*-----------------*------------*------------*------> time
+            //  mBaseTime       mStopTime        startTime     mStopTime    mCurrTime
+
+            return static_cast<float>((m_StopTime - m_PausedTime - m_BaseTime) * m_SecondsPerCount);
+        }
+
+        // The distance mCurrTime - mBaseTime includes paused time,
+        // which we do not want to count.  To correct this, we can subtract 
+        // the paused time from mCurrTime:  
+        //
+        //  (mCurrTime - mPausedTime) - mBaseTime 
+        //
+        //                     |<--paused time-->|
+        // ----*---------------*-----------------*------------*------> time
+        //  mBaseTime       mStopTime        startTime     mCurrTime
+
+        return static_cast<float>((m_CurrentTime - m_PausedTime - m_BaseTime) * m_SecondsPerCount);
     }
 
     void GameTime::Start()
     {
+        if (!bIsStopped)
+        {
+            return;
+        }
+
+        int64_t startTime;
+        QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&startTime));
+
+        m_PausedTime += startTime - m_StopTime;
+        m_PreviousTime = startTime;
+
+        m_StopTime = 0;
+        bIsStopped = false;
     }
 
     void GameTime::Stop()
     {
+        if (bIsStopped)
+        {
+            return;
+        }
+
+        int64_t currentTime;
+        QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currentTime));
+        m_StopTime = currentTime;
+        bIsStopped = true;
+    }
+
+    void GameTime::Reset()
+    {
+        int64_t currentTime;
+        QueryPerformanceCounter(reinterpret_cast<LARGE_INTEGER*>(&currentTime));
+
+        m_BaseTime = currentTime;
+        m_PreviousTime = currentTime;
+        m_StopTime = 0;
+        bIsStopped = false;
     }
 
     void GameTime::Tick()

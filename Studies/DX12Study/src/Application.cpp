@@ -24,6 +24,8 @@ namespace Studies
         CreateDepthStencilDescriptorHeap();
         CreateRenderTargetView();
         CreateDepthStencilView();
+
+        m_Timer.Reset();
     }
 
     void Application::Tick()
