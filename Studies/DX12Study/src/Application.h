@@ -68,5 +68,7 @@ namespace Studies
 
     private:
         GameTime m_Timer{};
+
+        void CalculateFrameStats();
     };
 }

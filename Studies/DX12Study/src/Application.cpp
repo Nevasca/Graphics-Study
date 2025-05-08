@@ -31,6 +31,8 @@ namespace Studies
     void Application::Tick()
     {
         m_Timer.Tick();
+
+        CalculateFrameStats();
     }
 
     void Application::CreateDevice()
@@ -304,6 +306,32 @@ namespace Studies
         return m_DepthStencilViewHeap->GetCPUDescriptorHandleForHeapStart();
     }
 
+    void Application::CalculateFrameStats()
+    {
+        constexpr float TIME_PERIOD = 1.f;
+        static int frameCount = 0;
+        static float timeElapsed = 0.f;
+
+        frameCount++;
+
+        if (m_Timer.GetTime() - timeElapsed < TIME_PERIOD)
+        {
+            return;
+        }
+
+        // fps = frameCount / time period (ignoring division as we are using the time period = 1)
+        float fps = static_cast<float>(frameCount);
+        float msPerFrame = 1000.f / fps;
+
+        std::wstring windowText = L"Stats: " + std::to_wstring(static_cast<int>(fps)) + L" FPS";
+        windowText += L"    " + std::to_wstring(msPerFrame) + L"ms";
+
+        SetWindowText(m_hWindow, windowText.c_str());
+
+        frameCount = 0;
+        timeElapsed += TIME_PERIOD;
+    }
+    
 #if defined(DEBUG) || defined(_DEBUG)
     void Application::EnableDebugLayer()
     {
