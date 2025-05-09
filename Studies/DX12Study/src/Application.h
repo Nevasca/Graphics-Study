@@ -45,6 +45,8 @@ namespace Studies
 
         int m_ClientWidth{800};
         int m_ClientHeight{600};
+
+        UINT64 m_CurrentFence{0};
     
         void CreateDevice();
         void CreateFence();
@@ -59,8 +61,11 @@ namespace Studies
         void ResizeViewport();
         void ResizeScissors();
 
+        ID3D12Resource* GetCurrentBackBuffer() const;
         D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferView() const;
         D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentDepthStencilView() const;
+
+        void FlushCommandQueue();
 
 #if defined(DEBUG) || defined(_DEBUG)
         void EnableDebugLayer();
@@ -70,5 +75,6 @@ namespace Studies
         GameTime m_Timer{};
 
         void CalculateFrameStats();
+        void Draw();
     };
 }

@@ -33,6 +33,75 @@ namespace Studies
         m_Timer.Tick();
 
         CalculateFrameStats();
+        Draw();
+    }
+
+    void Application::Draw()
+    {
+        // Reuse memory associated with command recording
+        // We can only reset when the associated command list has finished execution on GPU
+        ThrowIfFailed(m_CommandListAllocator->Reset());
+        
+        // A command list can be reset after it has been added to the command queue via ExecuteCommandList
+        // Reusing a command list reuses memory
+        ThrowIfFailed(m_CommandList->Reset(m_CommandListAllocator.Get(), nullptr));
+
+        // Indicate a state transition on the resource usage
+        CD3DX12_RESOURCE_BARRIER backBufferTransitionToRenderTarget = CD3DX12_RESOURCE_BARRIER::Transition(
+            GetCurrentBackBuffer(),
+            D3D12_RESOURCE_STATE_PRESENT,
+            D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+        m_CommandList->ResourceBarrier(1, &backBufferTransitionToRenderTarget);
+
+        // Set the viewport and scissors rect.
+        // This needs to be reset whenever the command list is reset
+        ResizeViewport();
+        ResizeScissors();
+
+        // Clear back buffer
+        m_CommandList->ClearRenderTargetView(
+            GetCurrentBackBufferView(),
+            DirectX::Colors::BlanchedAlmond,
+            0, nullptr);
+
+        // Clear depth buffer
+        m_CommandList->ClearDepthStencilView(
+            GetCurrentDepthStencilView(),
+            D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            1.0f, 0, 0, nullptr);
+
+        // Specify the buffers we are going to render to
+        D3D12_CPU_DESCRIPTOR_HANDLE currentBackBufferView = GetCurrentBackBufferView();
+        D3D12_CPU_DESCRIPTOR_HANDLE currentDepthStencilView = GetCurrentDepthStencilView();
+        m_CommandList->OMSetRenderTargets(
+            1,
+            &currentBackBufferView,
+            true,
+            &currentDepthStencilView);
+
+        // Indicate a state transition on the resource usage
+        CD3DX12_RESOURCE_BARRIER backBufferTransitionToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
+            GetCurrentBackBuffer(),
+            D3D12_RESOURCE_STATE_RENDER_TARGET,
+            D3D12_RESOURCE_STATE_PRESENT);
+
+        m_CommandList->ResourceBarrier(1, &backBufferTransitionToPresent);
+
+        // Done recording commands
+        ThrowIfFailed(m_CommandList->Close());
+
+        // Add the command list to the queue for execution
+        ID3D12CommandList* commandLists[] = { m_CommandList.Get() };
+        m_CommandQueue->ExecuteCommandLists(1, commandLists);
+
+        // Swap the back and front buffers
+        ThrowIfFailed(m_SwapChain->Present(0, 0));
+        m_CurrentBackBufferIndex = (m_CurrentBackBufferIndex + 1) % SWAPCHAIN_BUFFER_COUNT;
+
+        // Wait until frame commands are completed
+        // This waiting is inefficient and is done for simplicity
+        FlushCommandQueue();
     }
 
     void Application::CreateDevice()
@@ -293,6 +362,11 @@ namespace Studies
         // The scissors needs to be reset whenever the command list is reset
     }
 
+    ID3D12Resource* Application::GetCurrentBackBuffer() const
+    {
+        return m_SwapChainBuffers[m_CurrentBackBufferIndex].Get();
+    }
+
     D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentBackBufferView() const
     {
         return CD3DX12_CPU_DESCRIPTOR_HANDLE(
@@ -304,6 +378,30 @@ namespace Studies
     D3D12_CPU_DESCRIPTOR_HANDLE Application::GetCurrentDepthStencilView() const
     {
         return m_DepthStencilViewHeap->GetCPUDescriptorHandleForHeapStart();
+    }
+
+    void Application::FlushCommandQueue()
+    {
+        // Advance the fence value to mark commands up to this fence point
+        m_CurrentFence++;
+
+        // Add an instruction to the command queue to set a new fence point.  Because we 
+        // are on the GPU timeline, the new fence point won't be set until the GPU finishes
+        // processing all the commands prior to this Signal().
+        ThrowIfFailed(m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFence));
+
+        // Wait until the GPU has completed commands up to this fence point
+        if(m_Fence->GetCompletedValue() < m_CurrentFence)
+        {
+            HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
+
+            // Fire event when GPU hits current fence
+            ThrowIfFailed(m_Fence->SetEventOnCompletion(m_CurrentFence, eventHandle));
+
+            // Wait until GPU hits current fence
+            WaitForSingleObject(eventHandle, INFINITE);
+            CloseHandle(eventHandle);
+        }
     }
 
     void Application::CalculateFrameStats()
@@ -331,7 +429,7 @@ namespace Studies
         frameCount = 0;
         timeElapsed += TIME_PERIOD;
     }
-    
+
 #if defined(DEBUG) || defined(_DEBUG)
     void Application::EnableDebugLayer()
     {
