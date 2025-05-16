@@ -3,6 +3,8 @@
 #include <wrl.h>
 #include <d3d12.h>
 #include <dxgi1_4.h>
+#include <memory>
+#include "src/Demo.h"
 #include "GameTime.h"
 
 namespace Studies
@@ -73,6 +75,7 @@ namespace Studies
 
     private:
         GameTime m_Timer{};
+        std::unique_ptr<Demo> m_CurrentDemo{};
 
         void CalculateFrameStats();
         void Draw();

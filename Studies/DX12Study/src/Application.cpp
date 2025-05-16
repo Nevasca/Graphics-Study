@@ -1,5 +1,5 @@
 ﻿#include "Application.h"
-
+#include "demos/BoxDemo.h"
 #include <d3dUtil.h>
 
 namespace Studies
@@ -26,11 +26,15 @@ namespace Studies
         CreateDepthStencilView();
 
         m_Timer.Reset();
+
+        m_CurrentDemo = std::make_unique<Demos::BoxDemo>();
+        m_CurrentDemo->Initialize(*m_Device.Get());
     }
 
     void Application::Tick()
     {
         m_Timer.Tick();
+        m_CurrentDemo->Tick(m_Timer.GetDeltaTime());
 
         CalculateFrameStats();
         Draw();
@@ -79,6 +83,8 @@ namespace Studies
             &currentBackBufferView,
             true,
             &currentDepthStencilView);
+
+        m_CurrentDemo->Draw(*m_Device.Get(), *m_CommandList.Get());
 
         // Indicate a state transition on the resource usage
         CD3DX12_RESOURCE_BARRIER backBufferTransitionToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
