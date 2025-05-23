@@ -147,6 +147,7 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="src\GameTime.h" />
     <ClInclude Include="src\Vertex.h" />
+    <ClInclude Include="src\VertexBufferUtil.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
@@ -167,6 +168,7 @@
     <ClCompile Include="src\DX12Study.cpp" />
     <ClCompile Include="src\GameTime.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
+    <ClCompile Include="src\VertexBufferUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX12Study.rc" />
