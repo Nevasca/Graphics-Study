@@ -28,7 +28,7 @@ namespace Studies
         m_Timer.Reset();
 
         m_CurrentDemo = std::make_unique<Demos::BoxDemo>();
-        m_CurrentDemo->Initialize(*m_Device.Get());
+        m_CurrentDemo->Initialize(*m_Device.Get(), *m_CommandList.Get());
     }
 
     void Application::Tick()
