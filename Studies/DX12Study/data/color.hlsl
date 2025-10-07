@@ -26,7 +26,7 @@ struct VertexOut
 // We could have also not used structs and place all parameters on the VS function and using out for output values for next stage, like so:
 // void VS(float3 iPosL : POSITION, float3 iColor : COLOR, out float4 oPosH : SV_POSITION, out float4 oColor : COLOR)
 // Using structs is much more organized though
-VertexOut VS(VertexIn vertexIn)
+VertexOut VS(VertexIn vertexIn) // VS = Vertex Shader
 {
     VertexOut vertexOut;
 
@@ -35,4 +35,13 @@ VertexOut VS(VertexIn vertexIn)
     vertexOut.Color = vertexIn.Color;
     
     return vertexOut;
+}
+
+// Pixel shader input must match what vertex shader outputs.
+// If instead of having an output struct we had separate out values, we would then need to match on PS arguments as well,
+// such as float4 PS(float4 posH : SV_POSITION, float4 color : COLOR) : SV_Target
+// SV_Target is the semantic indicating that the return value type of the pixel shader should match the render target format
+float4 PS(VertexOut pixelIn) : SV_Target // PS = Pixel Shader
+{
+    return pixelIn.Color;
 }
