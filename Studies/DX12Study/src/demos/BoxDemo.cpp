@@ -6,12 +6,16 @@
 #include "src/Vertex.h"
 #include "src/VertexBufferUtil.h"
 
+#include <d3dUtil.h>
+
 namespace Studies
 {
     namespace Demos
     {
         void BoxDemo::Initialize(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
+            CreateConstantBufferViewHeap(device);
+            
             SetupCube(device, commandList);
         }
 
@@ -22,6 +26,21 @@ namespace Studies
         {
             // When not using index buffers, we use ID3D12GraphicsCommandList::DrawInstanced
             // When using index buffers, we use ID3D12GraphicsCommandList::DrawIndexedInstanced
+        }
+
+        void BoxDemo::CreateConstantBufferViewHeap(ID3D12Device& device)
+        {
+            D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc{};
+            // Since on this BoxDemo we don't have an SRV or UAV descriptors, and we are going to render only one object, we just need 1 descriptor in the heap
+            cbvHeapDesc.NumDescriptors = 1;
+            cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+            // D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE indicate that the descriptor will be accessed by shader programs
+            cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+            cbvHeapDesc.NodeMask = 0;
+
+            ThrowIfFailed(device.CreateDescriptorHeap(
+                &cbvHeapDesc,
+                IID_PPV_ARGS(m_constantBufferViewHeap.GetAddressOf())));
         }
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
