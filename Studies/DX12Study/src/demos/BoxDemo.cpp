@@ -15,6 +15,7 @@ namespace Studies
         void BoxDemo::Initialize(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
             CreateConstantBufferViewHeap(device);
+            CreateConstantBufferView(device);
             
             SetupCube(device, commandList);
         }
@@ -41,6 +42,29 @@ namespace Studies
             ThrowIfFailed(device.CreateDescriptorHeap(
                 &cbvHeapDesc,
                 IID_PPV_ARGS(m_constantBufferViewHeap.GetAddressOf())));
+        }
+
+        void BoxDemo::CreateConstantBufferView(ID3D12Device& device)
+        {
+            m_objectConstantBuffer = std::make_unique<UploadBuffer<ObjectConstants>>(device, 1, true);
+
+            UINT objectConstantBufferSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+
+            // Address to start of the buffer (0th constant buffer)
+            D3D12_GPU_VIRTUAL_ADDRESS constantBufferAddress = m_objectConstantBuffer->GetResource()->GetGPUVirtualAddress();
+
+            // Offset to the ith object constant buffer in the buffer. In our case, we are only using one object
+            int boxConstantBufferIndex = 0;
+            constantBufferAddress += boxConstantBufferIndex * objectConstantBufferSize;
+
+            // D3D12_CONSTANT_BUFFER_VIEW_DESC describes a subset of the constant buffer resource to bind to the HLSL
+            D3D12_CONSTANT_BUFFER_VIEW_DESC constantBufferViewDesc{};
+            constantBufferViewDesc.BufferLocation = constantBufferAddress; // Must be multiple of 256 bytes
+            constantBufferViewDesc.SizeInBytes = objectConstantBufferSize; // Must be multiple of 256 bytes
+
+            device.CreateConstantBufferView(
+                &constantBufferViewDesc,
+                m_constantBufferViewHeap->GetCPUDescriptorHandleForHeapStart());
         }
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
