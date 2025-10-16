@@ -16,6 +16,7 @@ namespace Studies
         {
             CreateConstantBufferViewHeap(device);
             CreateConstantBufferView(device);
+            CreateRootSignature(device);
             
             SetupCube(device, commandList);
         }
@@ -65,6 +66,56 @@ namespace Studies
             device.CreateConstantBufferView(
                 &constantBufferViewDesc,
                 m_constantBufferViewHeap->GetCPUDescriptorHandleForHeapStart());
+        }
+
+        void BoxDemo::CreateRootSignature(ID3D12Device& device)
+        {
+            // Root signature defines what resources the application will bind to the rendering pipeline before
+            // a draw call can be executed. It does not actually do any resource binding
+
+            // "If we think shader programs as functions, and the input resources the shaders expects as function params,
+            // then the root signature can be thought of as defining a function signature"
+
+            // Root signature is defined by an array of root params that describe the resources the shaders expects
+            // Root param can be a descriptor table, root descriptor or root constants
+            // In the box demo we will use only a descriptor table
+            
+            CD3DX12_ROOT_PARAMETER slotRootParameter[1];
+
+            // Create a single descriptor table of CBVs
+            CD3DX12_DESCRIPTOR_RANGE constantBufferViewTable;
+            constantBufferViewTable.Init(
+                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+                1, // Number of descriptors in table
+                0); // Base shader register arguments are bound to for this root parameter (register b(0) in this case)
+
+            slotRootParameter[0].InitAsDescriptorTable(1, &constantBufferViewTable);
+
+            // A root signature is an array of root parameters
+            CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc{
+                1,
+                slotRootParameter,
+                0,
+                nullptr,
+                D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT};
+
+            // Create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
+            Microsoft::WRL::ComPtr<ID3DBlob> serializedRootSignature = nullptr;
+            Microsoft::WRL::ComPtr<ID3DBlob> errorBlob = nullptr;
+
+            HRESULT hr = D3D12SerializeRootSignature(
+                &rootSignatureDesc,
+                D3D_ROOT_SIGNATURE_VERSION_1,
+                serializedRootSignature.GetAddressOf(),
+                errorBlob.GetAddressOf());
+
+            ThrowIfFailed(hr);
+
+            ThrowIfFailed(device.CreateRootSignature(
+                0,
+                serializedRootSignature->GetBufferPointer(),
+                serializedRootSignature->GetBufferSize(),
+                IID_PPV_ARGS(&m_rootSignature)));
         }
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)

@@ -28,7 +28,8 @@ namespace Studies
 
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_constantBufferViewHeap{};
             std::unique_ptr<UploadBuffer<ObjectConstants>> m_objectConstantBuffer{};
-            
+            Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature{};
+
             Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferGPU;
             Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferUploader;
             Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferGPU;
@@ -36,6 +37,7 @@ namespace Studies
 
             void CreateConstantBufferViewHeap(ID3D12Device& device);
             void CreateConstantBufferView(ID3D12Device& device);
+            void CreateRootSignature(ID3D12Device& device);
             
             void SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
             void SetupVertexBuffer(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
