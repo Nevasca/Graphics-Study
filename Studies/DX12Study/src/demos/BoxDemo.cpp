@@ -28,6 +28,20 @@ namespace Studies
         {
             // When not using index buffers, we use ID3D12GraphicsCommandList::DrawInstanced
             // When using index buffers, we use ID3D12GraphicsCommandList::DrawIndexedInstanced
+
+            // For performance, we should make the root signature as small as possible
+            // and try to minimize the number of times we change the root signature per rendering frame
+            commandList.SetGraphicsRootSignature(m_rootSignature.Get());
+
+            ID3D12DescriptorHeap* descriptorHeaps[] = { m_constantBufferViewHeap.Get() };
+            commandList.SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+            // If we were drawing more than one object, we would need to offset the constant buffer view like this:
+            // CD3DX12_GPU_DESCRIPTOR_HANDLE constantBufferView{m_constantBufferViewHeap->GetGPUDescriptorHandleForHeapStart()};
+            // constantBufferView.Offset(cbvIndex, m_CbvSrvDescriptorSize);
+
+            // As for this demo we have only one object, we can simply do this:
+            commandList.SetGraphicsRootDescriptorTable(0, m_constantBufferViewHeap->GetGPUDescriptorHandleForHeapStart());
         }
 
         void BoxDemo::CreateConstantBufferViewHeap(ID3D12Device& device)
