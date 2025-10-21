@@ -35,10 +35,14 @@ namespace Studies
             Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferGPU;
             Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferUploader;
 
+            Microsoft::WRL::ComPtr<ID3DBlob> m_vertexShaderByteCode{nullptr};
+            Microsoft::WRL::ComPtr<ID3DBlob> m_pixelShaderByteCode{nullptr};
+
             void CreateConstantBufferViewHeap(ID3D12Device& device);
             void CreateConstantBufferView(ID3D12Device& device);
             void CreateRootSignature(ID3D12Device& device);
-            
+
+            void SetupShader();
             void SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
             void SetupVertexBuffer(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
             void SetupIndexBuffer(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);

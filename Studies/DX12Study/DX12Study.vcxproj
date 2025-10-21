@@ -146,6 +146,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="src\GameTime.h" />
+    <ClInclude Include="src\ShaderUtil.h" />
     <ClInclude Include="src\UploadBuffer.h" />
     <ClInclude Include="src\Vertex.h" />
     <ClInclude Include="src\VertexBufferUtil.h" />
@@ -169,6 +170,7 @@
     <ClCompile Include="src\demos\BoxDemo.cpp" />
     <ClCompile Include="src\DX12Study.cpp" />
     <ClCompile Include="src\GameTime.cpp" />
+    <ClCompile Include="src\ShaderUtil.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
   </ItemGroup>

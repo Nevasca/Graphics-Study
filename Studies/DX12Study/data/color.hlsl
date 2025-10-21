@@ -1,4 +1,4 @@
-﻿// HLSL = high level shading language
+// HLSL = high level shading language
 
 cbuffer cbPerObject : register(b0)
 {

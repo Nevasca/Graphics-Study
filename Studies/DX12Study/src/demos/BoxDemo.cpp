@@ -8,6 +8,8 @@
 
 #include <d3dUtil.h>
 
+#include "src/ShaderUtil.h"
+
 namespace Studies
 {
     namespace Demos
@@ -17,7 +19,8 @@ namespace Studies
             CreateConstantBufferViewHeap(device);
             CreateConstantBufferView(device);
             CreateRootSignature(device);
-            
+
+            SetupShader();
             SetupCube(device, commandList);
         }
 
@@ -130,6 +133,14 @@ namespace Studies
                 serializedRootSignature->GetBufferPointer(),
                 serializedRootSignature->GetBufferSize(),
                 IID_PPV_ARGS(&m_rootSignature)));
+        }
+
+        void BoxDemo::SetupShader()
+        {
+            const std::wstring shaderPath = L"data//color.hlsl";
+
+            m_vertexShaderByteCode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
+            m_pixelShaderByteCode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
         }
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
