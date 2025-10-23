@@ -141,6 +141,16 @@ namespace Studies
 
             m_vertexShaderByteCode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
             m_pixelShaderByteCode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
+
+            // Input elements linking to what the shader expects. If we feed in vertices that do not supply all the inputs a vertex shader expects, an error will result
+            // The vertex data and input signature do not need to match exactly. We need to provide all data the vertex shader expects, but we are allowed to have on the vertex additional data that vertex shader does not use
+            // like having uv coord but the vertex shader is just a simple color one that does not use UV
+            // The semantic name, such as "POSITION", is used to match vertex elements with vertex shader parameters
+            m_inputElementDescriptions =
+            {
+                {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            };
         }
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)

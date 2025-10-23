@@ -35,6 +35,7 @@ namespace Studies
             Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferGPU;
             Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferUploader;
 
+            std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElementDescriptions{};
             Microsoft::WRL::ComPtr<ID3DBlob> m_vertexShaderByteCode{nullptr};
             Microsoft::WRL::ComPtr<ID3DBlob> m_pixelShaderByteCode{nullptr};
 
