@@ -22,6 +22,8 @@ namespace Studies
 
             SetupShader();
             SetupCube(device, commandList);
+
+            CreatePipelineStateObject(device);
         }
 
         void BoxDemo::Tick(float deltaTime)
@@ -133,6 +135,68 @@ namespace Studies
                 serializedRootSignature->GetBufferPointer(),
                 serializedRootSignature->GetBufferSize(),
                 IID_PPV_ARGS(&m_rootSignature)));
+        }
+
+        void BoxDemo::CreatePipelineStateObject(ID3D12Device& device)
+        {
+            // Objects that control the state of the graphics pipeline are actually bound for use via
+            // an aggregate called pipeline state object
+            D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineStateDescription{};
+            ZeroMemory(&pipelineStateDescription, sizeof(pipelineStateDescription));
+
+            // InputLayout description is simply an array of input element descriptions and the number of elements
+            pipelineStateDescription.InputLayout = {
+                m_inputElementDescriptions.data(),
+                static_cast<UINT>(m_inputElementDescriptions.size()),
+            };
+
+            pipelineStateDescription.pRootSignature = m_rootSignature.Get();
+
+            // On the book author reinterpreters GetBufferPointer into BYTE* (reinterpreter_cast<BYTE*>m_vertexShaderByteCode->GetBufferPointer())
+            // Decided to not do that as D3D12_SHADER_BYTECODE expects a const void* and GetBufferPointer already returns void*
+            pipelineStateDescription.VS = {
+                m_vertexShaderByteCode->GetBufferPointer(),
+                m_vertexShaderByteCode->GetBufferSize()
+            };
+
+            pipelineStateDescription.PS = {
+                m_pixelShaderByteCode->GetBufferPointer(),
+                m_pixelShaderByteCode->GetBufferSize()
+            };
+
+            // On RasterizerState we can set fill mode (solid or wireframe), cull mode (back, front) and some other params
+            // We can create a rasterizer description with default values by passing the dummy type D3D12_DEFAULT on the constructor
+            pipelineStateDescription.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+            // The dummy type D3D12_DEFAULT can be used on other descriptions as well
+            pipelineStateDescription.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+            pipelineStateDescription.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+
+            // Multisampling can take up to 32 samples. This 32-bit integer value is used to enable/disable the samples.
+            // For example, if you turn off the 5th bit, then the 5th sample will not be taken.
+            // Generally the default 0xffffffff is used
+            pipelineStateDescription.SampleMask = UINT_MAX;
+
+            // Specifies the primitive topology type (undefined, point, line, triangle, patch)
+            pipelineStateDescription.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+            // Number of render targets we are using simultaneously
+            pipelineStateDescription.NumRenderTargets = 1;
+
+            // TODO: hard coding what is used on Application::m_BackBufferFormat, refactor to have this exposed or passed somewhere
+            pipelineStateDescription.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+            // TODO: investigate how to create with multisampling, books' approach on swap chain with multisampling
+            // does not work anymore. Hard coding a sample desc not using multisampling
+            pipelineStateDescription.SampleDesc.Count = 1;
+            pipelineStateDescription.SampleDesc.Quality = 0;
+            
+            // TODO: hard coding what is used on Application::m_DepthStencilFormat, refactor to have this exposed or passed somewhere
+            pipelineStateDescription.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+            ThrowIfFailed(device.CreateGraphicsPipelineState(
+                &pipelineStateDescription,
+                IID_PPV_ARGS(&m_pipelineStateObject)));
         }
 
         void BoxDemo::SetupShader()
