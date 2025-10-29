@@ -29,6 +29,13 @@ namespace Studies
 
         m_CurrentDemo = std::make_unique<Demos::BoxDemo>();
         m_CurrentDemo->Initialize(*m_Device.Get(), *m_CommandList.Get());
+
+        // Execute the initialization commands
+        ThrowIfFailed(m_CommandList->Close());
+        ID3D12CommandList* commandLists[] = { m_CommandList.Get() };
+        m_CommandQueue->ExecuteCommandLists(1, commandLists);
+
+        FlushCommandQueue();
     }
 
     void Application::Tick()
@@ -48,7 +55,7 @@ namespace Studies
         
         // A command list can be reset after it has been added to the command queue via ExecuteCommandList
         // Reusing a command list reuses memory
-        ThrowIfFailed(m_CommandList->Reset(m_CommandListAllocator.Get(), nullptr));
+        ThrowIfFailed(m_CommandList->Reset(m_CommandListAllocator.Get(), m_CurrentDemo->GetInitialPipelineState()));
 
         // Indicate a state transition on the resource usage
         CD3DX12_RESOURCE_BARRIER backBufferTransitionToRenderTarget = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -195,9 +202,11 @@ namespace Studies
             nullptr, // Right now we are not issuing commands, just showing how to initialize D3D12, so using null pipeline state for now.
             IID_PPV_ARGS(m_CommandList.GetAddressOf())));
 
-        // Start off in closed state.
-        // We are going to call Reset() on it on first time and it needs to be in closed state
-        m_CommandList->Close();
+        // Book says to start closed:
+        // "Start off in closed state.
+        // We are going to call Reset() on it on first time and it needs to be in closed state"
+        // but if we close now, we won't be able to record the initialization commands and then close to execute them
+        // m_CommandList->Close();
     }
 
     void Application::CreateSwapChain()
