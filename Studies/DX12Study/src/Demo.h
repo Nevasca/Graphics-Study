@@ -10,6 +10,8 @@ namespace Studies
         virtual void Tick(float deltaTime) = 0;
         virtual void Draw(ID3D12Device& device, ID3D12GraphicsCommandList& commandList) = 0;
 
+        virtual ID3D12PipelineState* GetInitialPipelineState() const = 0;
+
         virtual ~Demo() = default;
     };
 }

@@ -5,6 +5,7 @@
 #include <wrl/client.h>
 
 #include "src/Demo.h"
+#include "src/MeshGeometry.h"
 #include "src/UploadBuffer.h"
 
 namespace Studies
@@ -24,6 +25,8 @@ namespace Studies
             void Tick(float deltaTime) override;
             void Draw(ID3D12Device& device, ID3D12GraphicsCommandList& commandList) override;
 
+            ID3D12PipelineState* GetInitialPipelineState() const override;
+
         private:
 
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_constantBufferViewHeap{};
@@ -31,10 +34,12 @@ namespace Studies
             Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature{};
             Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineStateObject{};
 
-            Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferGPU;
-            Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferUploader;
-            Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferGPU;
-            Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferUploader;
+            // Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferGPU{nullptr};
+            // Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferUploader{nullptr};
+            // Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferGPU{nullptr};
+            // Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferUploader{nullptr};
+
+            std::unique_ptr<MeshGeometry> m_BoxGeometry{};
 
             std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElementDescriptions{};
             Microsoft::WRL::ComPtr<ID3DBlob> m_vertexShaderByteCode{nullptr};
@@ -47,8 +52,6 @@ namespace Studies
 
             void SetupShader();
             void SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
-            void SetupVertexBuffer(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
-            void SetupIndexBuffer(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
         };
     }
 }

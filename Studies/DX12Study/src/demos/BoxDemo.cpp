@@ -27,19 +27,54 @@ namespace Studies
         }
 
         void BoxDemo::Tick(float deltaTime)
-        { }
+        {
+            // TODO: implement mouse move events to be able to move around cube, hard coded values for now
+            float theta = 1.5f* DirectX::XM_PI;
+            float phi = DirectX::XM_PIDIV4;
+            float radius = 5.0f;
+
+            float x = radius * sinf(phi) * cosf(theta);
+            float z = radius * sinf(phi) * sinf(theta) * sinf(theta);
+            float y = radius * cosf(phi);
+
+            DirectX::XMVECTOR pos = DirectX::XMVectorSet(x, y, z, 1.f);
+            DirectX::XMVECTOR target = DirectX::XMVectorZero();
+            DirectX::XMVECTOR up = DirectX::XMVectorSet(0.f, 1.f, 0.f, 0.f);
+
+            DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, target, up);
+
+            DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
+
+            DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, 800.f / 600.f, 1.f, 1000.f);
+            DirectX::XMMATRIX worldViewProj = world * view * proj;
+
+            ObjectConstants objectConstants{};
+            DirectX::XMStoreFloat4x4(&objectConstants.WorldViewProj, DirectX::XMMatrixTranspose(worldViewProj));
+            m_objectConstantBuffer->CopyData(0, objectConstants);
+        }
 
         void BoxDemo::Draw(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
-            // When not using index buffers, we use ID3D12GraphicsCommandList::DrawInstanced
-            // When using index buffers, we use ID3D12GraphicsCommandList::DrawIndexedInstanced
+            ID3D12DescriptorHeap* descriptorHeaps[] = { m_constantBufferViewHeap.Get() };
+            commandList.SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
             // For performance, we should make the root signature as small as possible
             // and try to minimize the number of times we change the root signature per rendering frame
             commandList.SetGraphicsRootSignature(m_rootSignature.Get());
 
-            ID3D12DescriptorHeap* descriptorHeaps[] = { m_constantBufferViewHeap.Get() };
-            commandList.SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+            // In order to bind a vertex buffer to the pipeline, we need to create a vertex buffer view, which doesn't need a descriptor heap
+            D3D12_VERTEX_BUFFER_VIEW vertexBufferView = m_BoxGeometry->GetVertexBufferView();
+
+            // Bind the vertex view to an input slot of the pipeline (from 0 to 15) to feed vertices to the input assembler stage
+            // The book says: "A vertex buffer will stay bound to an input slot until we change it"
+            // but this doesn't seem to be true, at least not anymore. If we don't issue the IASetVertexBuffers and IASetIndexBuffer
+            // commands every draw call, the cube is not presented on screen
+            commandList.IASetVertexBuffers(0, 1, &vertexBufferView);
+
+            D3D12_INDEX_BUFFER_VIEW indexBufferView = m_BoxGeometry->GetIndexBufferView();
+            commandList.IASetIndexBuffer(&indexBufferView);
+
+            commandList.IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             // If we were drawing more than one object, we would need to offset the constant buffer view like this:
             // CD3DX12_GPU_DESCRIPTOR_HANDLE constantBufferView{m_constantBufferViewHeap->GetGPUDescriptorHandleForHeapStart()};
@@ -47,6 +82,17 @@ namespace Studies
 
             // As for this demo we have only one object, we can simply do this:
             commandList.SetGraphicsRootDescriptorTable(0, m_constantBufferViewHeap->GetGPUDescriptorHandleForHeapStart());
+
+            // When not using index buffers, we use ID3D12GraphicsCommandList::DrawInstanced
+            // When using index buffers, we use ID3D12GraphicsCommandList::DrawIndexedInstanced
+            commandList.DrawIndexedInstanced(
+                m_BoxGeometry->DrawArgs["box"].IndexCount,
+                1, 0, 0, 0);
+        }
+
+        ID3D12PipelineState* BoxDemo::GetInitialPipelineState() const
+        {
+            return m_pipelineStateObject.Get();
         }
 
         void BoxDemo::CreateConstantBufferViewHeap(ID3D12Device& device)
@@ -219,12 +265,6 @@ namespace Studies
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
-            SetupVertexBuffer(device, commandList);
-            SetupIndexBuffer(device, commandList);
-        }
-
-        void BoxDemo::SetupVertexBuffer(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
-        {
             Vertex vertices[] =
             {
                 {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
@@ -237,27 +277,6 @@ namespace Studies
                 {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
             };
 
-            constexpr UINT64 vertexBufferSize = 8 * sizeof(Vertex);
-
-            m_vertexBufferGPU = nullptr;
-            m_vertexBufferUploader = nullptr;
-
-            m_vertexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, vertices, vertexBufferSize, m_vertexBufferUploader);
-
-            // In order to bind a vertex buffer to the pipeline, we need to create a vertex buffer view, which doesn't need a descriptor heap
-            D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
-            vertexBufferView.BufferLocation = m_vertexBufferGPU->GetGPUVirtualAddress();
-            vertexBufferView.SizeInBytes = vertexBufferSize;
-            vertexBufferView.StrideInBytes = sizeof(Vertex);
-
-            // Bind the vertex view to an input slot of the pipeline (from 0 to 15) to feed vertices to the input assembler stage
-            // A vertex buffer will stay bound to an input slot until we change it
-            D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[1] = { vertexBufferView };
-            commandList.IASetVertexBuffers(0, 1, vertexBufferViews);
-        }
-
-        void BoxDemo::SetupIndexBuffer(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
-        {
             uint16_t indices[] =
             {
                 // Front face
@@ -285,21 +304,29 @@ namespace Studies
                 4, 3, 7
             };
 
+            constexpr UINT64 vertexBufferSize = 8 * sizeof(Vertex);
             constexpr UINT indexBufferSize = 36 * sizeof(uint16_t);
 
-            m_indexBufferGPU = nullptr;
-            m_indexBufferUploader = nullptr;
+            m_BoxGeometry = std::make_unique<MeshGeometry>();
+            m_BoxGeometry->Name = "Box";
 
-            m_indexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, indices, indexBufferSize, m_indexBufferUploader);
+            m_BoxGeometry->VertexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, vertices, vertexBufferSize, m_BoxGeometry->VertexBufferUploader);
 
-            D3D12_INDEX_BUFFER_VIEW indexBufferView{};
-            indexBufferView.BufferLocation = m_indexBufferGPU->GetGPUVirtualAddress();
+            m_BoxGeometry->IndexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, indices, indexBufferSize, m_BoxGeometry->IndexBufferUploader);
+
+            m_BoxGeometry->VertexByteStride = sizeof(Vertex);
+            m_BoxGeometry->VertexBufferByteSize = vertexBufferSize;
             // For format, we should use DXGI_FORMAT_R16_UINT for 16-bit indices to reduce bandwidth.
             // Only use DXGI_FORMAT_R32_UINT if we have indexes that need the extra 32-bit range
-            indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-            indexBufferView.SizeInBytes = indexBufferSize;
+            m_BoxGeometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+            m_BoxGeometry->IndexBufferByteSize = indexBufferSize;
 
-            commandList.IASetIndexBuffer(&indexBufferView);
+            SubmeshGeometry submesh{};
+            submesh.IndexCount = 36;
+            submesh.StartIndexLocation = 0;
+            submesh.BaseVertexLocation = 0;
+
+            m_BoxGeometry->DrawArgs["box"] = submesh;
         }
     }
 }
