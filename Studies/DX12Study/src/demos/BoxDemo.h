@@ -34,11 +34,6 @@ namespace Studies
             Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature{};
             Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineStateObject{};
 
-            // Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferGPU{nullptr};
-            // Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBufferUploader{nullptr};
-            // Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferGPU{nullptr};
-            // Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBufferUploader{nullptr};
-
             std::unique_ptr<MeshGeometry> m_BoxGeometry{};
 
             std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElementDescriptions{};
