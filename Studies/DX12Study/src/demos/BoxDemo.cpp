@@ -7,7 +7,9 @@
 #include "src/VertexBufferUtil.h"
 
 #include <d3dUtil.h>
+#include <iostream>
 
+#include "src/Input.h"
 #include "src/ShaderUtil.h"
 
 namespace Studies
@@ -28,14 +30,48 @@ namespace Studies
 
         void BoxDemo::Tick(float deltaTime)
         {
-            // TODO: implement mouse move events to be able to move around cube, hard coded values for now
-            float theta = 1.5f* DirectX::XM_PI;
-            float phi = DirectX::XM_PIDIV4;
-            float radius = 5.0f;
+            UpdateCamera();
+            UpdateConstantBuffer();
+        }
 
-            float x = radius * sinf(phi) * cosf(theta);
-            float z = radius * sinf(phi) * sinf(theta) * sinf(theta);
-            float y = radius * cosf(phi);
+        void BoxDemo::UpdateCamera()
+        {
+            Vector2 currentMousePosition = Input::GetMousePosition();
+
+            if(Input::GetMouseButton(Input::MouseButton::Left))
+            {
+                // Make each pixel correspond to a quarter of a degree
+                float dx = DirectX::XMConvertToRadians(0.25f * (currentMousePosition.X - static_cast<float>(m_LastMousePos.x)));
+                float dy = DirectX::XMConvertToRadians(0.25f * (currentMousePosition.Y - static_cast<float>(m_LastMousePos.y)));
+
+                // Update angles to orbit camera around box
+                m_Theta += dx;
+                m_Phi -= dy;
+
+                // Restrict the angle
+                m_Phi = MathHelper::Clamp(m_Phi, 0.1f, MathHelper::Pi - 0.1f);
+            }
+            else if(Input::GetMouseButton(Input::MouseButton::Right))
+            {
+                // Make each pixel correspond to 0.005 unit in the scene
+                float dx = 0.005f * (currentMousePosition.X - static_cast<float>(m_LastMousePos.x));
+                float dy = 0.005f * (currentMousePosition.Y - static_cast<float>(m_LastMousePos.y));
+
+                m_Radius += dx - dy;
+
+                m_Radius = MathHelper::Clamp(m_Radius, 3.0f, 15.f);
+            }
+
+            m_LastMousePos.x = static_cast<long>(currentMousePosition.X);
+            m_LastMousePos.y = static_cast<long>(currentMousePosition.Y);
+        }
+
+        void BoxDemo::UpdateConstantBuffer()
+        {
+            // Convert Spherical to Cartesian coordinates
+            float x = m_Radius * sinf(m_Phi) * cosf(m_Theta);
+            float z = m_Radius * sinf(m_Phi) * sinf(m_Theta) * sinf(m_Theta);
+            float y = m_Radius * cosf(m_Phi);
 
             DirectX::XMVECTOR pos = DirectX::XMVectorSet(x, y, z, 1.f);
             DirectX::XMVECTOR target = DirectX::XMVectorZero();
@@ -43,8 +79,9 @@ namespace Studies
 
             DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, target, up);
 
-            DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
+            DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&m_World);
 
+            // TODO: update projection matrix on window resize
             DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, 800.f / 600.f, 1.f, 1000.f);
             DirectX::XMMATRIX worldViewProj = world * view * proj;
 
@@ -328,5 +365,7 @@ namespace Studies
 
             m_BoxGeometry->DrawArgs["box"] = submesh;
         }
+
+        
     }
 }

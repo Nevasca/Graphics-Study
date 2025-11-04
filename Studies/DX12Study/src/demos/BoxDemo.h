@@ -40,6 +40,15 @@ namespace Studies
             Microsoft::WRL::ComPtr<ID3DBlob> m_vertexShaderByteCode{nullptr};
             Microsoft::WRL::ComPtr<ID3DBlob> m_pixelShaderByteCode{nullptr};
 
+            DirectX::XMFLOAT4X4 m_World{MathHelper::Identity4x4()};
+            DirectX::XMFLOAT4X4 m_View{MathHelper::Identity4x4()};
+            DirectX::XMFLOAT4X4 m_Proj{MathHelper::Identity4x4()};
+
+            float m_Theta{1.5f * DirectX::XM_PI};
+            float m_Phi{DirectX::XM_PIDIV4};
+            float m_Radius{5.0f};
+            POINT m_LastMousePos{0,0};
+
             void CreateConstantBufferViewHeap(ID3D12Device& device);
             void CreateConstantBufferView(ID3D12Device& device);
             void CreateRootSignature(ID3D12Device& device);
@@ -47,6 +56,9 @@ namespace Studies
 
             void SetupShader();
             void SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
+
+            void UpdateCamera();
+            void UpdateConstantBuffer();
         };
     }
 }
