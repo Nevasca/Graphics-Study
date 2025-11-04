@@ -2,6 +2,8 @@
 #include "demos/BoxDemo.h"
 #include <d3dUtil.h>
 
+#include "Input.h"
+
 namespace Studies
 {
     void Application::Initialize(HWND mainWindow)
@@ -455,4 +457,21 @@ namespace Studies
         debugController->EnableDebugLayer();
     }
 #endif
+
+    void Application::OnMouseDown(WPARAM btnState, int x, int y)
+    {
+        Input::OnMouseDown(btnState, x, y);
+        SetCapture(m_hWindow);
+    }
+
+    void Application::OnMouseUp(WPARAM btnState, int x, int y)
+    {
+        Input::OnMouseUp(btnState, x, y);
+        ReleaseCapture();
+    }
+
+    void Application::OnMouseMove(WPARAM btnState, int x, int y)
+    {
+        Input::OnMouseMove(btnState, x, y);
+    }
 }

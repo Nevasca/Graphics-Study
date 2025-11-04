@@ -15,6 +15,10 @@ namespace Studies
         void Initialize(HWND mainWindow);
         void Tick();
 
+        void OnMouseDown(WPARAM btnState, int x, int y);
+        void OnMouseUp(WPARAM btnState, int x, int y);
+        void OnMouseMove(WPARAM btnState, int x, int y);
+
     private:
 
         static constexpr int SWAPCHAIN_BUFFER_COUNT = 2;
