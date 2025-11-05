@@ -3,6 +3,7 @@
 #include <d3dUtil.h>
 
 #include "Input.h"
+#include "Screen.h"
 
 namespace Studies
 {
@@ -473,5 +474,50 @@ namespace Studies
     void Application::OnMouseMove(WPARAM btnState, int x, int y)
     {
         Input::OnMouseMove(btnState, x, y);
+    }
+
+    void Application::OnResize(int width, int height)
+    {
+        Screen::OnResize(width, height);
+
+        m_ClientWidth = width;
+        m_ClientHeight = height;
+
+        if(!m_Device)
+        {
+            return;
+        }
+
+        // Flush before changing any resource
+        FlushCommandQueue();
+
+        ThrowIfFailed(m_CommandList->Reset(m_CommandListAllocator.Get(), nullptr));
+
+        // Release the previous resources we will be recreating
+        for (int i = 0; i < SWAPCHAIN_BUFFER_COUNT; i++)
+        {
+            m_SwapChainBuffers[i].Reset();
+        }
+
+        m_DepthStencilBuffer.Reset();
+
+        // Resize swap chain
+        ThrowIfFailed(m_SwapChain->ResizeBuffers(
+            SWAPCHAIN_BUFFER_COUNT,
+            m_ClientWidth,
+            m_ClientHeight,
+            m_BackBufferFormat,
+            DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+
+        m_CurrentBackBufferIndex = 0;
+
+        CreateRenderTargetView();
+        CreateDepthStencilView();
+
+        ThrowIfFailed(m_CommandList->Close());
+        ID3D12CommandList* commandLists[] = { m_CommandList.Get() };
+        m_CommandQueue->ExecuteCommandLists(1, commandLists);
+
+        FlushCommandQueue();
     }
 }

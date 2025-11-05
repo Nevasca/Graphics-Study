@@ -11,6 +11,10 @@
 #define MAX_LOADSTRING 100
 
 Studies::Application g_Application{};
+int g_WindowWidth{800};
+int g_WindowHeight{600};
+bool g_IsResizing{false};
+bool g_IsMinimized{false};
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
@@ -31,8 +35,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
-
-    // TODO: Place code here.
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -154,6 +156,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             }
             return DefWindowProc(hWnd, message, wParam, lParam);
         }
+    case WM_SIZE:
+        g_WindowWidth = LOWORD(lParam);
+        g_WindowHeight = HIWORD(lParam);
+        if(wParam == SIZE_MINIMIZED)
+        {
+            g_IsMinimized = true;
+        }
+        else if(wParam == SIZE_MAXIMIZED)
+        {
+            g_IsMinimized = false;
+            g_Application.OnResize(g_WindowWidth, g_WindowHeight);
+        }
+        else if (wParam == SIZE_RESTORED && !g_IsResizing)
+        {
+            g_Application.OnResize(g_WindowWidth, g_WindowHeight);
+        }
+        return 0;
+    case WM_ENTERSIZEMOVE:
+        g_IsResizing = true;
+        return 0;
+    case WM_EXITSIZEMOVE:
+        g_IsResizing = false;
+        g_Application.OnResize(g_WindowWidth, g_WindowHeight);
+        return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;

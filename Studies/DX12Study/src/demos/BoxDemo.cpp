@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "src/Input.h"
+#include "src/Screen.h"
 #include "src/ShaderUtil.h"
 
 namespace Studies
@@ -81,8 +82,7 @@ namespace Studies
 
             DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&m_World);
 
-            // TODO: update projection matrix on window resize
-            DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, 800.f / 600.f, 1.f, 1000.f);
+            DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, Screen::GetAspectRatio(), 1.f, 1000.f);
             DirectX::XMMATRIX worldViewProj = world * view * proj;
 
             ObjectConstants objectConstants{};

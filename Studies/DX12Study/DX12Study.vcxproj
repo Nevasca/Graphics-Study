@@ -148,6 +148,7 @@
     <ClInclude Include="src\GameTime.h" />
     <ClInclude Include="src\Input.h" />
     <ClInclude Include="src\MeshGeometry.h" />
+    <ClInclude Include="src\Screen.h" />
     <ClInclude Include="src\ShaderUtil.h" />
     <ClInclude Include="src\UploadBuffer.h" />
     <ClInclude Include="src\Vector2.h" />
@@ -175,6 +176,7 @@
     <ClCompile Include="src\GameTime.cpp" />
     <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\MeshGeometry.cpp" />
+    <ClCompile Include="src\Screen.cpp" />
     <ClCompile Include="src\ShaderUtil.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
