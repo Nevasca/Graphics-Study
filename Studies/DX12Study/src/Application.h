@@ -19,6 +19,8 @@ namespace Studies
         void OnMouseUp(WPARAM btnState, int x, int y);
         void OnMouseMove(WPARAM btnState, int x, int y);
         void OnResize(int width, int height);
+        
+        ~Application();
 
     private:
 

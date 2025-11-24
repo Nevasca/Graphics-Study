@@ -41,6 +41,14 @@ namespace Studies
         FlushCommandQueue();
     }
 
+    Application::~Application()
+    {
+        if(m_Device)
+        {
+            FlushCommandQueue();
+        }
+    }
+
     void Application::Tick()
     {
         m_Timer.Tick();
