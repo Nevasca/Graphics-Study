@@ -9,6 +9,7 @@
 #include <d3dUtil.h>
 #include <iostream>
 
+#include "src/GameTime.h"
 #include "src/Input.h"
 #include "src/Screen.h"
 #include "src/ShaderUtil.h"
@@ -17,22 +18,26 @@ namespace Studies
 {
     namespace Demos
     {
-        void BoxDemo::Initialize(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
+        void BoxDemo::Initialize(ID3D12Device& device, ID3D12GraphicsCommandList& commandList, UINT cbvSrvDescriptorSize)
         {
+            m_CbvSrvDescriptorSize = cbvSrvDescriptorSize;
+
             CreateConstantBufferViewHeap(device);
             CreateConstantBufferView(device);
             CreateRootSignature(device);
 
             SetupShader();
-            SetupCube(device, commandList);
+            // SetupCube(device, commandList);
+            // SetupPyramid(device, commandList);
+            SetupCubeAndPyramid(device, commandList);
 
             CreatePipelineStateObject(device);
         }
 
-        void BoxDemo::Tick(float deltaTime)
+        void BoxDemo::Tick(const GameTime& gameTime)
         {
             UpdateCamera();
-            UpdateConstantBuffer();
+            UpdateConstantBuffer(gameTime);
         }
 
         void BoxDemo::UpdateCamera()
@@ -67,7 +72,7 @@ namespace Studies
             m_LastMousePos.y = static_cast<long>(currentMousePosition.Y);
         }
 
-        void BoxDemo::UpdateConstantBuffer()
+        void BoxDemo::UpdateConstantBuffer(const GameTime& gameTime)
         {
             // Convert Spherical to Cartesian coordinates
             float x = m_Radius * sinf(m_Phi) * cosf(m_Theta);
@@ -80,14 +85,28 @@ namespace Studies
 
             DirectX::XMMATRIX view = DirectX::XMMatrixLookAtLH(pos, target, up);
 
-            DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&m_World);
-
             DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, Screen::GetAspectRatio(), 1.f, 1000.f);
-            DirectX::XMMATRIX worldViewProj = world * view * proj;
 
-            ObjectConstants objectConstants{};
-            DirectX::XMStoreFloat4x4(&objectConstants.WorldViewProj, DirectX::XMMatrixTranspose(worldViewProj));
-            m_objectConstantBuffer->CopyData(0, objectConstants);
+            for(int i = 0; i < TOTAL_OBJECTS; i++)
+            {
+                DirectX::XMMATRIX world = DirectX::XMLoadFloat4x4(&m_World);
+                DirectX::XMMATRIX translation = DirectX::XMMatrixTranslation(-3.f * static_cast<float>(i), 0.f, 0.f);
+                DirectX::XMMATRIX worldViewProj = translation * world * view * proj;
+
+                ObjectConstants objectConstants{};
+                DirectX::XMStoreFloat4x4(&objectConstants.WorldViewProj, DirectX::XMMatrixTranspose(worldViewProj));
+                
+                if (i % 2 == 0)
+                {
+                    objectConstants.ColorOverTimeSpeed = 4.f;
+                }
+
+                m_objectConstantBuffer->CopyData(i, objectConstants);
+            }
+            
+            GlobalConstants globalConstants{};
+            globalConstants.Time = gameTime.GetTime();
+            m_globalConstantBuffer->CopyData(0, globalConstants);
         }
 
         void BoxDemo::Draw(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
@@ -107,6 +126,10 @@ namespace Studies
             // but this doesn't seem to be true, at least not anymore. If we don't issue the IASetVertexBuffers and IASetIndexBuffer
             // commands every draw call, the cube is not presented on screen
             commandList.IASetVertexBuffers(0, 1, &vertexBufferView);
+            
+            // Exercise 6.13 - 2.
+            // D3D12_VERTEX_BUFFER_VIEW colorVertexBufferView = m_BoxGeometryAdditionalBuffer->GetVertexBufferView();
+            // commandList.IASetVertexBuffers(1, 1, &colorVertexBufferView);
 
             D3D12_INDEX_BUFFER_VIEW indexBufferView = m_BoxGeometry->GetIndexBufferView();
             commandList.IASetIndexBuffer(&indexBufferView);
@@ -117,14 +140,30 @@ namespace Studies
             // CD3DX12_GPU_DESCRIPTOR_HANDLE constantBufferView{m_constantBufferViewHeap->GetGPUDescriptorHandleForHeapStart()};
             // constantBufferView.Offset(cbvIndex, m_CbvSrvDescriptorSize);
 
-            // As for this demo we have only one object, we can simply do this:
-            commandList.SetGraphicsRootDescriptorTable(0, m_constantBufferViewHeap->GetGPUDescriptorHandleForHeapStart());
+            CD3DX12_GPU_DESCRIPTOR_HANDLE globalConstantBufferViewHeapHandle{m_constantBufferViewHeap->GetGPUDescriptorHandleForHeapStart()};
 
+            // As for this demo we have only one object, we can simply do this:
+            // Global constants
+            commandList.SetGraphicsRootDescriptorTable(0, globalConstantBufferViewHeapHandle);
+
+            // Per object constants
+            globalConstantBufferViewHeapHandle.Offset(1, m_CbvSrvDescriptorSize);
+            commandList.SetGraphicsRootDescriptorTable(1, globalConstantBufferViewHeapHandle);
+
+            SubmeshGeometry boxSubmesh = m_BoxGeometry->DrawArgs["box"];
             // When not using index buffers, we use ID3D12GraphicsCommandList::DrawInstanced
             // When using index buffers, we use ID3D12GraphicsCommandList::DrawIndexedInstanced
             commandList.DrawIndexedInstanced(
-                m_BoxGeometry->DrawArgs["box"].IndexCount,
-                1, 0, 0, 0);
+                boxSubmesh.IndexCount,
+                1, boxSubmesh.StartIndexLocation, boxSubmesh.BaseVertexLocation, 0);
+            
+            globalConstantBufferViewHeapHandle.Offset(1, m_CbvSrvDescriptorSize);
+            commandList.SetGraphicsRootDescriptorTable(1, globalConstantBufferViewHeapHandle);
+            
+            SubmeshGeometry pyramidSubmesh = m_BoxGeometry->DrawArgs["pyramid"];
+            commandList.DrawIndexedInstanced(
+                pyramidSubmesh.IndexCount,
+                1, pyramidSubmesh.StartIndexLocation, pyramidSubmesh.BaseVertexLocation, 0);
         }
 
         ID3D12PipelineState* BoxDemo::GetInitialPipelineState() const
@@ -136,7 +175,7 @@ namespace Studies
         {
             D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc{};
             // Since on this BoxDemo we don't have an SRV or UAV descriptors, and we are going to render only one object, we just need 1 descriptor in the heap
-            cbvHeapDesc.NumDescriptors = 1;
+            cbvHeapDesc.NumDescriptors = 3;
             cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
             // D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE indicate that the descriptor will be accessed by shader programs
             cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -149,25 +188,40 @@ namespace Studies
 
         void BoxDemo::CreateConstantBufferView(ID3D12Device& device)
         {
-            m_objectConstantBuffer = std::make_unique<UploadBuffer<ObjectConstants>>(device, 1, true);
+            // Exercise 6.13 - 6.
+            m_globalConstantBuffer = std::make_unique<UploadBuffer<GlobalConstants>>(device, 1, true);
+            
+            D3D12_CONSTANT_BUFFER_VIEW_DESC globalConstantBufferViewDesc{};
+            globalConstantBufferViewDesc.BufferLocation = m_globalConstantBuffer->GetResource()->GetGPUVirtualAddress();
+            globalConstantBufferViewDesc.SizeInBytes = d3dUtil::CalcConstantBufferByteSize(sizeof(GlobalConstants));
+            
+            CD3DX12_CPU_DESCRIPTOR_HANDLE constantBufferViewHeapHandle{m_constantBufferViewHeap->GetCPUDescriptorHandleForHeapStart()};
+            
+            device.CreateConstantBufferView(
+                &globalConstantBufferViewDesc,
+                constantBufferViewHeapHandle);
 
+            m_objectConstantBuffer = std::make_unique<UploadBuffer<ObjectConstants>>(device, TOTAL_OBJECTS, true);
             UINT objectConstantBufferSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
             // Address to start of the buffer (0th constant buffer)
             D3D12_GPU_VIRTUAL_ADDRESS constantBufferAddress = m_objectConstantBuffer->GetResource()->GetGPUVirtualAddress();
 
-            // Offset to the ith object constant buffer in the buffer. In our case, we are only using one object
-            int boxConstantBufferIndex = 0;
-            constantBufferAddress += boxConstantBufferIndex * objectConstantBufferSize;
+            for (int i = 0; i < TOTAL_OBJECTS; i++)
+            {
+                // Offset to the ith object constant buffer in the buffer
+                constantBufferAddress += i * objectConstantBufferSize;
+                constantBufferViewHeapHandle.Offset(1, m_CbvSrvDescriptorSize);
 
-            // D3D12_CONSTANT_BUFFER_VIEW_DESC describes a subset of the constant buffer resource to bind to the HLSL
-            D3D12_CONSTANT_BUFFER_VIEW_DESC constantBufferViewDesc{};
-            constantBufferViewDesc.BufferLocation = constantBufferAddress; // Must be multiple of 256 bytes
-            constantBufferViewDesc.SizeInBytes = objectConstantBufferSize; // Must be multiple of 256 bytes
+                // D3D12_CONSTANT_BUFFER_VIEW_DESC describes a subset of the constant buffer resource to bind to the HLSL
+                D3D12_CONSTANT_BUFFER_VIEW_DESC constantBufferViewDesc{};
+                constantBufferViewDesc.BufferLocation = constantBufferAddress; // Must be multiple of 256 bytes
+                constantBufferViewDesc.SizeInBytes = objectConstantBufferSize; // Must be multiple of 256 bytes
 
-            device.CreateConstantBufferView(
-                &constantBufferViewDesc,
-                m_constantBufferViewHeap->GetCPUDescriptorHandleForHeapStart());
+                device.CreateConstantBufferView(
+                    &constantBufferViewDesc,
+                    constantBufferViewHeapHandle);
+            }
         }
 
         void BoxDemo::CreateRootSignature(ID3D12Device& device)
@@ -182,20 +236,27 @@ namespace Studies
             // Root param can be a descriptor table, root descriptor or root constants
             // In the box demo we will use only a descriptor table
             
-            CD3DX12_ROOT_PARAMETER slotRootParameter[1];
+            CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 
             // Create a single descriptor table of CBVs
-            CD3DX12_DESCRIPTOR_RANGE constantBufferViewTable;
-            constantBufferViewTable.Init(
+            CD3DX12_DESCRIPTOR_RANGE globalConstantBufferViewTable;
+            globalConstantBufferViewTable.Init(
                 D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
                 1, // Number of descriptors in table
                 0); // Base shader register arguments are bound to for this root parameter (register b(0) in this case)
 
-            slotRootParameter[0].InitAsDescriptorTable(1, &constantBufferViewTable);
+            slotRootParameter[0].InitAsDescriptorTable(1, &globalConstantBufferViewTable);
+            
+            CD3DX12_DESCRIPTOR_RANGE perObjectConstantBufferViewTable;
+            perObjectConstantBufferViewTable.Init(
+                D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+                2, 
+                1);
+            slotRootParameter[1].InitAsDescriptorTable(1, &perObjectConstantBufferViewTable);
 
             // A root signature is an array of root parameters
             CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc{
-                1,
+                2,
                 slotRootParameter,
                 0,
                 nullptr,
@@ -296,23 +357,82 @@ namespace Studies
             m_inputElementDescriptions =
             {
                 {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-                { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+                // { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+                // DXGI_FORMAT_B8G8R8A8_UNORM lists bytes as they appear in memory (little-endian notation)
+                { "COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
             };
+            
+            // Exercise 6.13 - 1.
+            // m_inputElementDescriptions = 
+            // {
+            //     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            //     {"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            //     {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            //     {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            //     {"TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, 44, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            //     {"COLOR", 0, DXGI_FORMAT_B8G8R8A8_UNORM, 0, 52, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            // };
+            
+            // Exercise 6.13 - 2.
+            // m_inputElementDescriptions =
+            // {
+            //     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            //     { "COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            // };
         }
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
+            // Vertex vertices[] =
+            // {
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Black}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Blue}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
+            // };
+            
+            // Exercise 6.13 - 10.
             Vertex vertices[] =
             {
-                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
-                {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Black}},
-                {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
-                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Blue}},
-                {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
-                {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
-                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::White}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Black}},
+                {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Blue}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Yellow}},
+                {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Cyan}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Magenta}},
             };
+            
+            // Exercise 6.13 - 2.
+            // VertexPositionData positionVertices[] =
+            // {
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, -1.f}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, 1.f}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}} 
+            // };
+            //
+            // // Exercise 6.13 - 2.
+            // VertexColorData colorVertices[] =
+            // {
+            //     {DirectX::XMFLOAT4{DirectX::Colors::White}},
+            //     {DirectX::XMFLOAT4{DirectX::Colors::Black}},
+            //     {DirectX::XMFLOAT4{DirectX::Colors::Red}},
+            //     {DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT4{DirectX::Colors::Blue}},
+            //     {DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
+            //     {DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
+            //     {DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
+            // };
 
             uint16_t indices[] =
             {
@@ -342,6 +462,9 @@ namespace Studies
             };
 
             constexpr UINT64 vertexBufferSize = 8 * sizeof(Vertex);
+
+            // Exercise 6.13 - 2.
+            // constexpr UINT64 positionVertexBufferSize = 8 * sizeof(VertexPositionData);
             constexpr UINT indexBufferSize = 36 * sizeof(uint16_t);
 
             m_BoxGeometry = std::make_unique<MeshGeometry>();
@@ -364,8 +487,198 @@ namespace Studies
             submesh.BaseVertexLocation = 0;
 
             m_BoxGeometry->DrawArgs["box"] = submesh;
+            
+            // Exercise 6.13 - 2.
+            // For simplicity, just duplicating the MeshGeometry to store a second vertex buffer, but would be better to have the MeshGeometry
+            // the possibility of having an array of vertex buffers
+            // constexpr UINT64 colorVertexBufferSize = 8 * sizeof(VertexColorData);
+            //
+            // m_BoxGeometryAdditionalBuffer = std::make_unique<MeshGeometry>();
+            // m_BoxGeometry->Name = "BoxColorVertices";
+            // m_BoxGeometryAdditionalBuffer->VertexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, colorVertices, colorVertexBufferSize, m_BoxGeometryAdditionalBuffer->VertexBufferUploader);
+            // m_BoxGeometryAdditionalBuffer->VertexByteStride = sizeof(VertexColorData);
+            // m_BoxGeometryAdditionalBuffer->VertexBufferByteSize = colorVertexBufferSize;
         }
 
-        
+        void BoxDemo::SetupPyramid(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
+        {
+            // Vertex vertices[] =
+            // {
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
+            // };
+            
+            // Exercise 6.13 - 10.
+            Vertex vertices[] =
+            {
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
+            };
+            
+            uint16_t indices[] =
+            {
+                // Base
+                0, 1, 2,
+                0, 2, 3,
+                
+                // Front
+                3, 4, 0,
+                
+                // Left
+                2, 4, 3,
+                
+                // Right
+                0, 4, 1,
+                
+                // Back
+                1, 4, 2
+            };
+            
+            constexpr UINT64 vertexBufferSize = 5 * sizeof(Vertex);
+            constexpr UINT indexBufferSize = 18 * sizeof(uint16_t);
+            
+            m_BoxGeometry = std::make_unique<MeshGeometry>();
+            m_BoxGeometry->Name = "Pyramid";
+            
+            m_BoxGeometry->VertexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, vertices, vertexBufferSize, m_BoxGeometry->VertexBufferUploader);
+            m_BoxGeometry->IndexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, indices, indexBufferSize, m_BoxGeometry->IndexBufferUploader);
+            
+            m_BoxGeometry->VertexByteStride = sizeof(Vertex);
+            m_BoxGeometry->VertexBufferByteSize = vertexBufferSize;
+            m_BoxGeometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+            m_BoxGeometry->IndexBufferByteSize = indexBufferSize;
+            
+            SubmeshGeometry submesh{};
+            submesh.IndexCount = 18;
+            submesh.StartIndexLocation = 0;
+            submesh.BaseVertexLocation = 0;
+            
+            m_BoxGeometry->DrawArgs["box"] = submesh;
+        }
+
+        void BoxDemo::SetupCubeAndPyramid(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
+        {
+            // Vertex vertices[] =
+            // {
+            //     // Box ----------------
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Black}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Blue}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
+            //     
+            //     // Pyramid -------------
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}}
+            // };
+            
+            // Exercise 6.13 - 10.
+            Vertex vertices[] =
+            {
+                // Box ----------------
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::White}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Black}},
+                {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Blue}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Yellow}},
+                {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Cyan}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Magenta}},
+                
+                // Pyramid -------------
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}}
+            };
+
+            uint16_t indices[] =
+            {
+                // Box -----------------
+                // Front face
+                0, 1, 2,
+                0, 2, 3,
+
+                // Back face
+                4, 6, 5,
+                4, 7, 6,
+
+                // Left face
+                4, 5, 1,
+                4, 1, 0,
+
+                // Right face
+                3, 2, 6,
+                3, 6, 7,
+
+                // Top face
+                1, 5, 6,
+                1, 6, 2,
+
+                // Bottom face
+                4, 0, 3,
+                4, 3, 7,
+                
+                // Pyramid -------------------
+                // Base
+                0, 1, 2,
+                0, 2, 3,
+                
+                // Front
+                3, 4, 0,
+                
+                // Left
+                2, 4, 3,
+                
+                // Right
+                0, 4, 1,
+                
+                // Back
+                1, 4, 2
+            };
+
+            constexpr UINT64 vertexBufferSize = (8 + 5) * sizeof(Vertex);
+            constexpr UINT indexBufferSize = (36 + 18) * sizeof(uint16_t);
+
+            m_BoxGeometry = std::make_unique<MeshGeometry>();
+            m_BoxGeometry->Name = "BoxPyramid";
+
+            m_BoxGeometry->VertexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, vertices, vertexBufferSize, m_BoxGeometry->VertexBufferUploader);
+            m_BoxGeometry->IndexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(&device, &commandList, indices, indexBufferSize, m_BoxGeometry->IndexBufferUploader);
+
+            m_BoxGeometry->VertexByteStride = sizeof(Vertex);
+            m_BoxGeometry->VertexBufferByteSize = vertexBufferSize;
+            // For format, we should use DXGI_FORMAT_R16_UINT for 16-bit indices to reduce bandwidth.
+            // Only use DXGI_FORMAT_R32_UINT if we have indexes that need the extra 32-bit range
+            m_BoxGeometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+            m_BoxGeometry->IndexBufferByteSize = indexBufferSize;
+
+            SubmeshGeometry boxSubmesh{};
+            boxSubmesh.IndexCount = 36;
+            boxSubmesh.StartIndexLocation = 0;
+            boxSubmesh.BaseVertexLocation = 0;
+
+            m_BoxGeometry->DrawArgs["box"] = boxSubmesh;
+            
+            SubmeshGeometry pyramidSubmesh{};
+            pyramidSubmesh.IndexCount = 18;
+            pyramidSubmesh.StartIndexLocation = 36;
+            pyramidSubmesh.BaseVertexLocation = 8;
+            
+            m_BoxGeometry->DrawArgs["pyramid"] = pyramidSubmesh;
+        }
     }
 }

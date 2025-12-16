@@ -13,6 +13,13 @@ namespace Studies
     struct ObjectConstants
     {
         DirectX::XMFLOAT4X4 WorldViewProj{MathHelper::Identity4x4()};
+        DirectX::XMFLOAT4 ColorOverTime{DirectX::Colors::BlueViolet};
+        float ColorOverTimeSpeed{1.f};
+    };
+    
+    struct GlobalConstants
+    {
+        float Time{0.f};
     };
     
     namespace Demos
@@ -21,20 +28,24 @@ namespace Studies
         {
         public:
 
-            void Initialize(ID3D12Device& device, ID3D12GraphicsCommandList& commandList) override;
-            void Tick(float deltaTime) override;
+            void Initialize(ID3D12Device& device, ID3D12GraphicsCommandList& commandList, UINT cbvSrvDescriptorSize) override;
+            void Tick(const GameTime& gameTime) override;
             void Draw(ID3D12Device& device, ID3D12GraphicsCommandList& commandList) override;
 
             ID3D12PipelineState* GetInitialPipelineState() const override;
 
         private:
+            static constexpr int TOTAL_OBJECTS = 2;
 
             Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_constantBufferViewHeap{};
             std::unique_ptr<UploadBuffer<ObjectConstants>> m_objectConstantBuffer{};
+            std::unique_ptr<UploadBuffer<GlobalConstants>> m_globalConstantBuffer{};
             Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSignature{};
             Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pipelineStateObject{};
 
             std::unique_ptr<MeshGeometry> m_BoxGeometry{};
+            // Exercise 6.13 - 2.
+            std::unique_ptr<MeshGeometry> m_BoxGeometryAdditionalBuffer{};
 
             std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElementDescriptions{};
             Microsoft::WRL::ComPtr<ID3DBlob> m_vertexShaderByteCode{nullptr};
@@ -56,9 +67,11 @@ namespace Studies
 
             void SetupShader();
             void SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
+            void SetupPyramid(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
+            void SetupCubeAndPyramid(ID3D12Device& device, ID3D12GraphicsCommandList& commandList);
 
             void UpdateCamera();
-            void UpdateConstantBuffer();
+            void UpdateConstantBuffer(const GameTime& gameTime);
         };
     }
 }

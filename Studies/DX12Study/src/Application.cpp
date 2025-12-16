@@ -31,7 +31,7 @@ namespace Studies
         m_Timer.Reset();
 
         m_CurrentDemo = std::make_unique<Demos::BoxDemo>();
-        m_CurrentDemo->Initialize(*m_Device.Get(), *m_CommandList.Get());
+        m_CurrentDemo->Initialize(*m_Device.Get(), *m_CommandList.Get(), m_CbvSrvDescriptorSize);
 
         // Execute the initialization commands
         ThrowIfFailed(m_CommandList->Close());
@@ -52,7 +52,7 @@ namespace Studies
     void Application::Tick()
     {
         m_Timer.Tick();
-        m_CurrentDemo->Tick(m_Timer.GetDeltaTime());
+        m_CurrentDemo->Tick(m_Timer);
 
         CalculateFrameStats();
         Draw();
@@ -381,6 +381,10 @@ namespace Studies
         scissorRect.top = 0;
         scissorRect.right = m_ClientWidth;
         scissorRect.bottom = m_ClientHeight;
+        
+        // Exercise 6.13 - 12.
+        // scissorRect.right = static_cast<int>(static_cast<float>(m_ClientWidth) / 2.f);
+        // scissorRect.bottom = static_cast<int>(static_cast<float>(m_ClientHeight) /2.f);
 
         // Using more than one on 'NumRects' param if for advanced effects
         m_CommandList->RSSetScissorRects(1, &scissorRect);
