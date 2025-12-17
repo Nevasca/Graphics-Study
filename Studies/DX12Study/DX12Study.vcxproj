@@ -152,6 +152,7 @@
     <ClInclude Include="src\PassConstants.h" />
     <ClInclude Include="src\Screen.h" />
     <ClInclude Include="src\ShaderUtil.h" />
+    <ClInclude Include="src\ShapesApplication.h" />
     <ClInclude Include="src\UploadBuffer.h" />
     <ClInclude Include="src\Vector2.h" />
     <ClInclude Include="src\Vertex.h" />
@@ -181,6 +182,7 @@
     <ClCompile Include="src\MeshGeometry.cpp" />
     <ClCompile Include="src\Screen.cpp" />
     <ClCompile Include="src\ShaderUtil.cpp" />
+    <ClCompile Include="src\ShapesApplication.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
   </ItemGroup>
