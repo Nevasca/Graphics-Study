@@ -10,20 +10,20 @@
 
 namespace Studies
 {
-    struct ObjectConstants
-    {
-        DirectX::XMFLOAT4X4 WorldViewProj{MathHelper::Identity4x4()};
-        DirectX::XMFLOAT4 ColorOverTime{DirectX::Colors::BlueViolet};
-        float ColorOverTimeSpeed{1.f};
-    };
-    
-    struct GlobalConstants
-    {
-        float Time{0.f};
-    };
-    
     namespace Demos
     {
+        struct ObjectConstants
+        {
+            DirectX::XMFLOAT4X4 WorldViewProj{MathHelper::Identity4x4()};
+            DirectX::XMFLOAT4 ColorOverTime{DirectX::Colors::BlueViolet};
+            float ColorOverTimeSpeed{1.f};
+        };
+    
+        struct GlobalConstants
+        {
+            float Time{0.f};
+        };
+
         class BoxDemo : public Demo
         {
         public:

@@ -3,9 +3,9 @@
 #include <memory>
 #include <wrl/client.h>
 
+#include "ObjectConstants.h"
 #include "PassConstants.h"
 #include "UploadBuffer.h"
-#include "demos/BoxDemo.h" // TODO: have ObjectConstants declared somewhere else
 
 namespace Studies
 {
