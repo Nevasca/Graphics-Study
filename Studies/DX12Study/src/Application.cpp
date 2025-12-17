@@ -7,11 +7,15 @@
 
 namespace Studies
 {
-    void Application::Initialize(HWND mainWindow)
+    void Application::Initialize(HWND mainWindow, int windowWidth, int windowHeight)
     {
         assert(mainWindow);
 
         m_hWindow = mainWindow;
+        m_ClientWidth = windowWidth;
+        m_ClientHeight = windowHeight;
+        
+        Screen::OnResize(windowWidth, windowHeight);
 
 #if defined(DEBUG) || defined(_DEBUG)
         EnableDebugLayer();  

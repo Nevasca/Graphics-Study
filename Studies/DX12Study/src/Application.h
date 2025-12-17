@@ -12,17 +12,17 @@ namespace Studies
     class Application
     {
     public:
-        void Initialize(HWND mainWindow);
-        void Tick();
+        virtual void Initialize(HWND mainWindow, int windowWidth, int windowHeight);
+        virtual void Tick();
 
         void OnMouseDown(WPARAM btnState, int x, int y);
         void OnMouseUp(WPARAM btnState, int x, int y);
         void OnMouseMove(WPARAM btnState, int x, int y);
         void OnResize(int width, int height);
         
-        ~Application();
+        virtual ~Application();
 
-    private:
+    protected:
 
         static constexpr int SWAPCHAIN_BUFFER_COUNT = 2;
 
@@ -80,11 +80,10 @@ namespace Studies
         void EnableDebugLayer();
 #endif
 
-    private:
         GameTime m_Timer{};
         std::unique_ptr<Demo> m_CurrentDemo{};
 
         void CalculateFrameStats();
-        void Draw();
+        virtual void Draw();
     };
 }

@@ -10,7 +10,8 @@
 
 #define MAX_LOADSTRING 100
 
-Studies::Application g_Application{};
+std::unique_ptr<Studies::Application> g_Application{nullptr};
+
 int g_WindowWidth{800};
 int g_WindowHeight{600};
 bool g_IsResizing{false};
@@ -49,7 +50,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DX12STUDY));
     
-    g_Application.Initialize(g_hWnd);
+    g_Application = std::make_unique<Studies::Application>();
+    g_Application->Initialize(g_hWnd, g_WindowWidth, g_WindowHeight);
 
     MSG msg{};
 
@@ -66,7 +68,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         }
         else
         {
-            g_Application.Tick();
+            g_Application->Tick();
         }
     }
 
@@ -166,11 +168,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         else if(wParam == SIZE_MAXIMIZED)
         {
             g_IsMinimized = false;
-            g_Application.OnResize(g_WindowWidth, g_WindowHeight);
+
+            if(g_Application)
+            {
+                g_Application->OnResize(g_WindowWidth, g_WindowHeight);
+            }
         }
         else if (wParam == SIZE_RESTORED && !g_IsResizing)
         {
-            g_Application.OnResize(g_WindowWidth, g_WindowHeight);
+            if (g_Application)
+            {
+                g_Application->OnResize(g_WindowWidth, g_WindowHeight);
+            }
         }
         return 0;
     case WM_ENTERSIZEMOVE:
@@ -178,7 +187,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
     case WM_EXITSIZEMOVE:
         g_IsResizing = false;
-        g_Application.OnResize(g_WindowWidth, g_WindowHeight);
+        if (g_Application)
+        {
+            g_Application->OnResize(g_WindowWidth, g_WindowHeight);
+        }
         return 0;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -186,15 +198,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_LBUTTONDOWN:
     case WM_MBUTTONDOWN:
     case WM_RBUTTONDOWN:
-        g_Application.OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        if (g_Application)
+        {
+            g_Application->OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        }
         return 0;
     case WM_LBUTTONUP:
     case WM_MBUTTONUP:
     case WM_RBUTTONUP:
-        g_Application.OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        if (g_Application)
+        {
+            g_Application->OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        }
         return 0;
     case WM_MOUSEMOVE:
-        g_Application.OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        if (g_Application)
+        {
+            g_Application->OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        }
         return 0;
     }
 
