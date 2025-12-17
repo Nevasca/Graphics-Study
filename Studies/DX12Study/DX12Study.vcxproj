@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\Demo.h" />
     <ClInclude Include="src\demos\BoxDemo.h" />
     <ClInclude Include="src\DX12Study.h" />
@@ -150,6 +151,7 @@
     <ClInclude Include="src\Input.h" />
     <ClInclude Include="src\MeshGeometry.h" />
     <ClInclude Include="src\PassConstants.h" />
+    <ClInclude Include="src\RenderItem.h" />
     <ClInclude Include="src\Screen.h" />
     <ClInclude Include="src\ShaderUtil.h" />
     <ClInclude Include="src\ShapesApplication.h" />
@@ -180,6 +182,7 @@
     <ClCompile Include="src\GameTime.cpp" />
     <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\MeshGeometry.cpp" />
+    <ClCompile Include="src\RenderItem.cpp" />
     <ClCompile Include="src\Screen.cpp" />
     <ClCompile Include="src\ShaderUtil.cpp" />
     <ClCompile Include="src\ShapesApplication.cpp" />

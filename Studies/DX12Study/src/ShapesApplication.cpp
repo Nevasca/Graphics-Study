@@ -1,5 +1,6 @@
 ﻿#include "ShapesApplication.h"
 
+#include "Constants.h"
 #include "Screen.h"
 
 namespace Studies
@@ -59,7 +60,7 @@ namespace Studies
         // TODO: implement objects
         const int TOTAL_OBJECTS = 2;
 
-        for(int i = 0; i < NUM_FRAME_RESOURCES; i++)
+        for(int i = 0; i < Constants::NUM_FRAME_RESOURCES; i++)
         {
             m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, TOTAL_OBJECTS));
         }
