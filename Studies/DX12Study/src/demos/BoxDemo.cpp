@@ -345,7 +345,7 @@ namespace Studies
 
         void BoxDemo::SetupShader()
         {
-            const std::wstring shaderPath = L"data//color.hlsl";
+            const std::wstring shaderPath = L"data//colorBoxDemo.hlsl";
 
             m_vertexShaderByteCode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
             m_pixelShaderByteCode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
