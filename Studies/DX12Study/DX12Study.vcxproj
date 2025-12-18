@@ -189,6 +189,7 @@
     <ClCompile Include="src\ShapesApplication.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
+    <Content Include="data\colorShapesApp.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX12Study.rc" />
