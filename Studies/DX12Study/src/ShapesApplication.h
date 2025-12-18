@@ -24,7 +24,17 @@ namespace Studies
         // Render items divided by PSO
         std::vector<RenderItem*> m_OpaqueRenderItems;
         std::vector<RenderItem*> m_TransparentRenderItems;
+
+        DirectX::XMFLOAT4X4 m_World{MathHelper::Identity4x4()};
+        DirectX::XMFLOAT4X4 m_View{MathHelper::Identity4x4()};
+        DirectX::XMFLOAT4X4 m_Proj{MathHelper::Identity4x4()};
+        DirectX::XMFLOAT3 m_EyePositionWorld{};
+
+        PassConstants m_MainPassConstants{};
         
         void CreateFrameResources();
+        
+        void UpdateObjectConstantBuffers();
+        void UpdatePassConstantBuffer();
     };
 }
