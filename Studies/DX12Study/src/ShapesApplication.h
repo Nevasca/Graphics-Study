@@ -32,6 +32,9 @@ namespace Studies
 
         PassConstants m_MainPassConstants{};
         
+        Microsoft::WRL::ComPtr<ID3D12RootSignature> m_RootSignature;
+        
+        void CreateRootSignature();
         void CreateFrameResources();
         
         void UpdateObjectConstantBuffers();

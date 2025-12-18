@@ -31,6 +31,7 @@ namespace Studies
         CreateDepthStencilView();
         
         CreateFrameResources();
+        CreateRootSignature();
 
         m_Timer.Reset();
 
@@ -117,6 +118,47 @@ namespace Studies
         m_MainPassConstants.DeltaTime = m_Timer.GetDeltaTime();
     }
 
+    void ShapesApplication::CreateRootSignature()
+    {
+        // We should not go overboard with number of constant buffers in our shaders for performance reasons
+        // It's recommended to keep them under five
+
+        CD3DX12_ROOT_PARAMETER rootParameters[2];
+        
+        CD3DX12_DESCRIPTOR_RANGE constantBufferViewTablePerObject;
+        constantBufferViewTablePerObject.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+        rootParameters[0].InitAsDescriptorTable(1, &constantBufferViewTablePerObject);
+        
+        CD3DX12_DESCRIPTOR_RANGE constantBufferViewTablePass;
+        constantBufferViewTablePass.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+        rootParameters[1].InitAsDescriptorTable(1, &constantBufferViewTablePass);
+        
+        CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc
+        {
+            2,
+            rootParameters,
+            0,
+            nullptr,
+            D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+        };
+        
+        Microsoft::WRL::ComPtr<ID3DBlob> serializedRootSignature{nullptr};
+        Microsoft::WRL::ComPtr<ID3DBlob> errorBlob{nullptr};
+
+        HRESULT hr = D3D12SerializeRootSignature(
+            &rootSignatureDesc,
+            D3D_ROOT_SIGNATURE_VERSION_1,
+            serializedRootSignature.GetAddressOf(),
+            errorBlob.GetAddressOf());
+
+        ThrowIfFailed(hr);
+        
+        ThrowIfFailed(m_Device->CreateRootSignature(
+            0,
+            serializedRootSignature->GetBufferPointer(),
+            serializedRootSignature->GetBufferSize(),
+            IID_PPV_ARGS(&m_RootSignature)));
+    }
 
     void ShapesApplication::CreateFrameResources()
     {
