@@ -74,7 +74,15 @@ namespace Studies
 
     void ShapesApplication::Draw()
     {
-        //TODO
+        // TODO: build and submit command list for this frame
+        
+        m_CurrentFence++;
+        m_CurrentFrameResource->Fence = m_CurrentFence;
+        
+        m_CommandQueue->Signal(m_Fence.Get(), m_CurrentFence);
+        
+        // GPU could still be working on commands from previous frames, but it's okay as we are not
+        // touching any frame resources associated with those frames
     }
     
     void ShapesApplication::UpdateObjectConstantBuffers()
