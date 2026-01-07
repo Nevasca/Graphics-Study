@@ -49,10 +49,27 @@ namespace Studies
         
         CalculateFrameStats();
         
+        SetNextFrameResource();
+        
         UpdateObjectConstantBuffers();
         UpdatePassConstantBuffer();
 
         Draw();
+    }
+
+    void ShapesApplication::SetNextFrameResource()
+    {
+        m_CurrentFrameResourceIndex = (m_CurrentFrameResourceIndex + 1) % Constants::NUM_FRAME_RESOURCES;
+        m_CurrentFrameResource = m_FrameResources[m_CurrentFrameResourceIndex].get();
+        
+        // If GPU has not finished processing commands of the current frame, we need to wait
+        if(m_CurrentFrameResource->Fence != 0 && m_Fence->GetCompletedValue() < m_CurrentFrameResource->Fence)
+        {
+            HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
+            ThrowIfFailed(m_Fence->SetEventOnCompletion(m_CurrentFrameResource->Fence, eventHandle));
+            WaitForSingleObject(eventHandle, INFINITE);
+            CloseHandle(eventHandle);
+        }
     }
 
     void ShapesApplication::Draw()

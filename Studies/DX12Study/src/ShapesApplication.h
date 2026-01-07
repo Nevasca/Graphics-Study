@@ -37,6 +37,7 @@ namespace Studies
         void CreateRootSignature();
         void CreateFrameResources();
         
+        void SetNextFrameResource();
         void UpdateObjectConstantBuffers();
         void UpdatePassConstantBuffer();
     };
