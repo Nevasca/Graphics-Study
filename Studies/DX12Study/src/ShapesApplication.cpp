@@ -116,6 +116,9 @@ namespace Studies
         
         m_MainPassConstants.TotalTime = m_Timer.GetTime();
         m_MainPassConstants.DeltaTime = m_Timer.GetDeltaTime();
+        
+        UploadBuffer<PassConstants>* currentPassConstantBuffer = m_CurrentFrameResource->PassConstantBuffer.get();
+        currentPassConstantBuffer->CopyData(0, m_MainPassConstants);
     }
 
     void ShapesApplication::CreateRootSignature()
