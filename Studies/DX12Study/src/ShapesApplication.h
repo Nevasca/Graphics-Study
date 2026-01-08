@@ -4,6 +4,7 @@
 #include "Application.h"
 #include "FrameResource.h"
 #include "RenderItem.h"
+#include "MeshGeometry.h"
 
 namespace Studies
 {
@@ -40,5 +41,10 @@ namespace Studies
         void SetNextFrameResource();
         void UpdateObjectConstantBuffers();
         void UpdatePassConstantBuffer();
+        
+    private:
+        std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_Geometries{};
+        
+        void SetupShapeGeometry();
     };
 }
