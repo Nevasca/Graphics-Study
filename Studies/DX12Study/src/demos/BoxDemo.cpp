@@ -383,30 +383,30 @@ namespace Studies
 
         void BoxDemo::SetupCube(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
-            // Vertex vertices[] =
-            // {
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
-            //     {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Black}},
-            //     {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Blue}},
-            //     {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
-            //     {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
-            // };
-            
-            // Exercise 6.13 - 10.
             Vertex vertices[] =
             {
-                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::White}},
-                {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Black}},
-                {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
-                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Blue}},
-                {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Yellow}},
-                {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Cyan}},
-                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Magenta}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Black}},
+                {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Blue}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
+                {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
             };
+            
+            // Exercise 6.13 - 10.
+            // Vertex vertices[] =
+            // {
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::White}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Black}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Blue}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Yellow}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Cyan}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Magenta}},
+            // };
             
             // Exercise 6.13 - 2.
             // VertexPositionData positionVertices[] =
@@ -502,24 +502,24 @@ namespace Studies
 
         void BoxDemo::SetupPyramid(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
-            // Vertex vertices[] =
-            // {
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
-            // };
-            
-            // Exercise 6.13 - 10.
             Vertex vertices[] =
             {
-                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
             };
+            
+            // Exercise 6.13 - 10.
+            // Vertex vertices[] =
+            // {
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
+            // };
             
             uint16_t indices[] =
             {
@@ -564,46 +564,46 @@ namespace Studies
 
         void BoxDemo::SetupCubeAndPyramid(ID3D12Device& device, ID3D12GraphicsCommandList& commandList)
         {
-            // Vertex vertices[] =
-            // {
-            //     // Box ----------------
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
-            //     {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Black}},
-            //     {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Blue}},
-            //     {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
-            //     {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
-            //     
-            //     // Pyramid -------------
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
-            //     {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}}
-            // };
-            
-            // Exercise 6.13 - 10.
             Vertex vertices[] =
             {
                 // Box ----------------
-                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::White}},
-                {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Black}},
-                {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
-                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Blue}},
-                {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Yellow}},
-                {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Cyan}},
-                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Magenta}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::White}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Black}},
+                {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Blue}},
+                {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Yellow}},
+                {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Cyan}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Magenta}},
                 
                 // Pyramid -------------
-                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
-                {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}}
+                {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::XMFLOAT4{DirectX::Colors::Green}},
+                {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::XMFLOAT4{DirectX::Colors::Red}}
             };
+            
+            // Exercise 6.13 - 10.
+            // Vertex vertices[] =
+            // {
+            //     // Box ----------------
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::White}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Black}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Blue}},
+            //     {DirectX::XMFLOAT3{-1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Yellow}},
+            //     {DirectX::XMFLOAT3{1.f, 1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Cyan}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Magenta}},
+            //     
+            //     // Pyramid -------------
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{-1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, -1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{1.f, -1.f, 1.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Green}},
+            //     {DirectX::XMFLOAT3{0.f, 1.f, 0.f}, DirectX::PackedVector::XMCOLOR{DirectX::Colors::Red}}
+            // };
 
             uint16_t indices[] =
             {

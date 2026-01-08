@@ -7,9 +7,9 @@ namespace Studies
     struct Vertex
     {
         DirectX::XMFLOAT3 Position;
-        // DirectX::XMFLOAT4 Color;
+        DirectX::XMFLOAT4 Color;
         // Exercise 6.13 - 10.
-        DirectX::PackedVector::XMCOLOR Color;
+        // DirectX::PackedVector::XMCOLOR Color;
     };
     
     // Exercise 6.13 - 2.
