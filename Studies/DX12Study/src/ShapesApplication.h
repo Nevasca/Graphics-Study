@@ -46,5 +46,6 @@ namespace Studies
         std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_Geometries{};
         
         void SetupShapeGeometry();
+        void SetupRenderItems();
     };
 }

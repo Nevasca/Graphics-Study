@@ -34,10 +34,11 @@ namespace Studies
         CreateRenderTargetView();
         CreateDepthStencilView();
         
+        SetupShapeGeometry();
+        SetupRenderItems();
+
         CreateFrameResources();
         CreateRootSignature();
-        
-        SetupShapeGeometry();
 
         m_Timer.Reset();
 
@@ -312,5 +313,89 @@ namespace Studies
         geometry->DrawArgs["cylinder"] = cylinderSubmesh;
         
         m_Geometries[geometry->Name] = std::move(geometry);
+    }
+
+    void ShapesApplication::SetupRenderItems()
+    {
+        using namespace DirectX;
+
+        std::unique_ptr<RenderItem> boxRenderItem = std::make_unique<RenderItem>();
+        XMStoreFloat4x4(&boxRenderItem->WorldMatrix, XMMatrixScaling(2.f, 2.f, 2.f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f));
+        boxRenderItem->ObjectConstantBufferIndex = 0;
+        boxRenderItem->Geometry = m_Geometries["shapeGeometry"].get();
+        boxRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        boxRenderItem->IndexCount = boxRenderItem->Geometry->DrawArgs["box"].IndexCount;
+        boxRenderItem->StartIndexLocation = boxRenderItem->Geometry->DrawArgs["box"].StartIndexLocation;
+        boxRenderItem->BaseVertexLocation = boxRenderItem->Geometry->DrawArgs["box"].BaseVertexLocation;
+        m_AllRenderItems.emplace_back(std::move(boxRenderItem));
+        
+        std::unique_ptr<RenderItem> gridRenderItem = std::make_unique<RenderItem>();
+        gridRenderItem->WorldMatrix = MathHelper::Identity4x4();
+        gridRenderItem->ObjectConstantBufferIndex = 1;
+        gridRenderItem->Geometry = m_Geometries["shapeGeometry"].get();
+        gridRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        gridRenderItem->IndexCount = gridRenderItem->Geometry->DrawArgs["grid"].IndexCount;
+        gridRenderItem->StartIndexLocation = gridRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
+        gridRenderItem->BaseVertexLocation = gridRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
+        m_AllRenderItems.emplace_back(std::move(gridRenderItem));
+        
+        // Build columns and spheres in rows
+        UINT objectConstantBufferIndex = 2;
+        for (int i = 0; i < 5; i++)
+        {
+            std::unique_ptr<RenderItem> leftCylinderItem = std::make_unique<RenderItem>();
+            std::unique_ptr<RenderItem> rightCylinderItem = std::make_unique<RenderItem>();
+            std::unique_ptr<RenderItem> leftSphereItem = std::make_unique<RenderItem>();
+            std::unique_ptr<RenderItem> rightSphereItem = std::make_unique<RenderItem>();
+            
+            XMMATRIX leftCylinderWorld = XMMatrixTranslation(-5.f, 1.5f, -10.f + static_cast<float>(i) * 5.f);
+            XMMATRIX rightCylinderWorld = XMMatrixTranslation(5.f, 1.5f, -10.f + static_cast<float>(i) * 5.f);
+            
+            XMMATRIX leftSphereWorld = XMMatrixTranslation(-5.f, 3.5f, -10.f + static_cast<float>(i) * 5.f);
+            XMMATRIX rightSphereWorld = XMMatrixTranslation(5.f, 3.5f, -10.f + static_cast<float>(i) * 5.f);
+            
+            XMStoreFloat4x4(&leftCylinderItem->WorldMatrix, leftCylinderWorld);
+            leftCylinderItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
+            leftCylinderItem->Geometry = m_Geometries["shapeGeometry"].get();
+            leftCylinderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+            leftCylinderItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["cylinder"].IndexCount;
+            leftCylinderItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
+            leftCylinderItem->BaseVertexLocation = leftCylinderItem->Geometry->DrawArgs["cylinder"].BaseVertexLocation;
+            
+            XMStoreFloat4x4(&rightCylinderItem->WorldMatrix, rightCylinderWorld);
+            rightCylinderItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
+            rightCylinderItem->Geometry = m_Geometries["shapeGeometry"].get();
+            rightCylinderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+            rightCylinderItem->IndexCount = rightCylinderItem->Geometry->DrawArgs["cylinder"].IndexCount;
+            rightCylinderItem->StartIndexLocation = rightCylinderItem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
+            rightCylinderItem->BaseVertexLocation = rightCylinderItem->Geometry->DrawArgs["cylinder"].BaseVertexLocation;
+            
+            XMStoreFloat4x4(&leftSphereItem->WorldMatrix, leftSphereWorld);
+            leftSphereItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
+            leftSphereItem->Geometry = m_Geometries["shapeGeometry"].get();
+            leftSphereItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+            leftSphereItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["sphere"].IndexCount;
+            leftSphereItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].StartIndexLocation;
+            leftSphereItem->BaseVertexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
+            
+            XMStoreFloat4x4(&rightSphereItem->WorldMatrix, rightSphereWorld);
+            rightSphereItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
+            rightSphereItem->Geometry = m_Geometries["shapeGeometry"].get();
+            rightSphereItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+            rightSphereItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["sphere"].IndexCount;
+            rightSphereItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].StartIndexLocation;
+            rightSphereItem->BaseVertexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
+            
+            m_AllRenderItems.emplace_back(std::move(leftCylinderItem));
+            m_AllRenderItems.emplace_back(std::move(rightCylinderItem));
+            m_AllRenderItems.emplace_back(std::move(leftSphereItem));
+            m_AllRenderItems.emplace_back(std::move(rightSphereItem));
+        }
+        
+        // All render items are opaque in this demo
+        for (const auto& renderItem : m_AllRenderItems)
+        {
+            m_OpaqueRenderItems.push_back(renderItem.get());
+        }
     }
 }
