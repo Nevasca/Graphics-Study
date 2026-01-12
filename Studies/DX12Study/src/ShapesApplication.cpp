@@ -44,6 +44,7 @@ namespace Studies
 
         CreateRootSignature();
         SetupShaderAndInputLayout();
+        CreatePipelineStateObjects();
 
         m_Timer.Reset();
 
@@ -523,5 +524,46 @@ namespace Studies
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
         };
+    }
+
+    void ShapesApplication::CreatePipelineStateObjects()
+    {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePipelineStateDesc{};
+        ZeroMemory(&opaquePipelineStateDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+        
+        opaquePipelineStateDesc.InputLayout = {
+            m_InputElementDescriptions.data(),
+            static_cast<UINT>(m_InputElementDescriptions.size())
+        };
+        
+        opaquePipelineStateDesc.pRootSignature = m_RootSignature.Get();
+        
+        opaquePipelineStateDesc.VS = {
+            m_VertexShaderBytecode->GetBufferPointer(),
+            m_VertexShaderBytecode->GetBufferSize()
+        };
+        
+        opaquePipelineStateDesc.PS = {
+            m_PixelShaderBytecode->GetBufferPointer(),
+            m_PixelShaderBytecode->GetBufferSize()
+        };
+        
+        opaquePipelineStateDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+        opaquePipelineStateDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        opaquePipelineStateDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        opaquePipelineStateDesc.SampleMask = UINT_MAX;
+        opaquePipelineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        opaquePipelineStateDesc.NumRenderTargets = 1;
+        opaquePipelineStateDesc.RTVFormats[0] = m_BackBufferFormat;
+        opaquePipelineStateDesc.SampleDesc.Count = 1;
+        opaquePipelineStateDesc.SampleDesc.Quality = 0;
+        opaquePipelineStateDesc.DSVFormat = m_DepthStencilFormat;
+        
+        ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&opaquePipelineStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["opaque"])));
+        
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueWireframeStateDesc = opaquePipelineStateDesc;
+        opaqueWireframeStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+        
+        ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&opaqueWireframeStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["opaque_wireframe"])));
     }
 }
