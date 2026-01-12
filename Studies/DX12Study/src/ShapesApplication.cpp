@@ -36,8 +36,11 @@ namespace Studies
         
         SetupShapeGeometry();
         SetupRenderItems();
-
         CreateFrameResources();
+        
+        CreateDescriptorHeaps();
+        CreateConstantBufferViews();
+
         CreateRootSignature();
 
         m_Timer.Reset();
@@ -202,6 +205,77 @@ namespace Studies
         for(int i = 0; i < Constants::NUM_FRAME_RESOURCES; i++)
         {
             m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount));
+        }
+    }
+    
+    void ShapesApplication::CreateDescriptorHeaps()
+    {
+        UINT objectCount = static_cast<UINT>(m_OpaqueRenderItems.size());
+        
+        // Need a CBV descriptor for each object for each frame resource
+        // +1 for the per pass CBV for each frame resource
+        UINT numDescriptors = Constants::NUM_FRAME_RESOURCES * (objectCount + 1);
+        
+        // Save offset to start of pass cbvs, the last three descriptors
+        m_PassCbvOffset = objectCount * Constants::NUM_FRAME_RESOURCES;
+        
+        D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {};
+        cbvHeapDesc.NumDescriptors = numDescriptors;
+        cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        cbvHeapDesc.NodeMask = 0;
+        
+        ThrowIfFailed(m_Device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&m_CbvDescriptorHeap)));
+    }
+
+    void ShapesApplication::CreateConstantBufferViews()
+    {
+        UINT objectConstantBufferSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+        UINT objectCount = static_cast<UINT>(m_OpaqueRenderItems.size());
+        
+        // Create constant buffer views for each object for each frame resource
+        // 0 to n-1 contains CBVs for objects of the 0th frame, 2n-1 for the 1st, 3n-1 for the 2nd
+        // 3n, 3n+1 and 3n+2 contains pass for 0th, 1st and 2nd frames
+        for (int frameIndex = 0; frameIndex < Constants::NUM_FRAME_RESOURCES; frameIndex++)
+        {
+            ID3D12Resource* objectConstantBuffer = m_FrameResources[frameIndex]->ObjectConstantBuffer->GetResource();
+            
+            for (UINT objectIndex = 0; objectIndex < objectCount; objectIndex++)
+            {
+                D3D12_GPU_VIRTUAL_ADDRESS constantBufferGPUAddress = objectConstantBuffer->GetGPUVirtualAddress();
+                constantBufferGPUAddress += objectIndex * objectConstantBufferSize;
+                
+                int heapIndex = frameIndex * objectCount + objectIndex;
+                CD3DX12_CPU_DESCRIPTOR_HANDLE handle = CD3DX12_CPU_DESCRIPTOR_HANDLE{
+                    m_CbvDescriptorHeap->GetCPUDescriptorHandleForHeapStart()
+                };
+                handle.Offset(heapIndex, m_CbvSrvDescriptorSize);
+                
+                D3D12_CONSTANT_BUFFER_VIEW_DESC constantBufferViewDesc = {};
+                constantBufferViewDesc.BufferLocation = constantBufferGPUAddress;
+                constantBufferViewDesc.SizeInBytes = objectConstantBufferSize;
+                
+                m_Device->CreateConstantBufferView(&constantBufferViewDesc, handle);
+            }
+        }
+        
+        // Last three descriptors are the pass CBVs for each frame resource
+        UINT passConstantBufferSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
+        for (int frameIndex = 0; frameIndex < Constants::NUM_FRAME_RESOURCES; frameIndex++)
+        {
+            ID3D12Resource* passConstantBuffer = m_FrameResources[frameIndex]->PassConstantBuffer->GetResource();
+            
+            D3D12_GPU_VIRTUAL_ADDRESS constantBufferGPUAddress = passConstantBuffer->GetGPUVirtualAddress();
+
+            int heapIndex = static_cast<int>(m_PassCbvOffset) + frameIndex;
+            CD3DX12_CPU_DESCRIPTOR_HANDLE handle = CD3DX12_CPU_DESCRIPTOR_HANDLE{m_CbvDescriptorHeap->GetCPUDescriptorHandleForHeapStart()};
+            handle.Offset(heapIndex, m_CbvSrvDescriptorSize);
+            
+            D3D12_CONSTANT_BUFFER_VIEW_DESC constantBufferViewDesc = {};
+            constantBufferViewDesc.BufferLocation = constantBufferGPUAddress;
+            constantBufferViewDesc.SizeInBytes = passConstantBufferSize;
+            
+            m_Device->CreateConstantBufferView(&constantBufferViewDesc, handle);
         }
     }
 

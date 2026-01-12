@@ -44,8 +44,12 @@ namespace Studies
         
     private:
         std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_Geometries{};
+        UINT m_PassCbvOffset{0};
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_CbvDescriptorHeap{};
         
         void SetupShapeGeometry();
         void SetupRenderItems();
+        void CreateDescriptorHeaps();
+        void CreateConstantBufferViews();
     };
 }
