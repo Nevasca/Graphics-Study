@@ -48,10 +48,14 @@ namespace Studies
         std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_Geometries{};
         UINT m_PassCbvOffset{0};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_CbvDescriptorHeap{};
+        Microsoft::WRL::ComPtr<ID3DBlob> m_VertexShaderBytecode{nullptr};
+        Microsoft::WRL::ComPtr<ID3DBlob> m_PixelShaderBytecode{nullptr};
+        std::vector<D3D12_INPUT_ELEMENT_DESC> m_InputElementDescriptions{};
         
         void SetupShapeGeometry();
         void SetupRenderItems();
         void CreateDescriptorHeaps();
         void CreateConstantBufferViews();
+        void SetupShaderAndInputLayout();
     };
 }

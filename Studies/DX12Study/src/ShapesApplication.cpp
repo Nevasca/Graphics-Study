@@ -4,6 +4,7 @@
 
 #include "Constants.h"
 #include "Screen.h"
+#include "ShaderUtil.h"
 #include "Vertex.h"
 #include "VertexBufferUtil.h"
 
@@ -42,6 +43,7 @@ namespace Studies
         CreateConstantBufferViews();
 
         CreateRootSignature();
+        SetupShaderAndInputLayout();
 
         m_Timer.Reset();
 
@@ -508,5 +510,18 @@ namespace Studies
         {
             m_OpaqueRenderItems.push_back(renderItem.get());
         }
+    }
+    
+    void ShapesApplication::SetupShaderAndInputLayout()
+    {
+        const std::wstring shaderPath = L"data//colorShapesApp.hlsl";
+
+        m_VertexShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
+        m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
+        
+        m_InputElementDescriptions = {
+            {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+        };
     }
 }
