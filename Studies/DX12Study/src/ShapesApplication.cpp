@@ -85,7 +85,9 @@ namespace Studies
     void ShapesApplication::Draw()
     {
         // TODO: build and submit command list for this frame
-        
+
+        DrawRenderItems(*m_CommandList.Get(), m_OpaqueRenderItems);
+
         m_CurrentFence++;
         m_CurrentFrameResource->Fence = m_CurrentFence;
         
@@ -94,7 +96,42 @@ namespace Studies
         // GPU could still be working on commands from previous frames, but it's okay as we are not
         // touching any frame resources associated with those frames
     }
-    
+
+    void ShapesApplication::DrawRenderItems(ID3D12GraphicsCommandList& commandList, const std::vector<RenderItem*>& renderItems)
+    {
+        UINT objectConstantBufferByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+
+        ID3D12Resource* objectConstantBuffer = m_CurrentFrameResource->ObjectConstantBuffer->GetResource();
+        
+        for(size_t i = 0; i < renderItems.size(); i++)
+        {
+            RenderItem* renderItem = renderItems[i];
+
+            D3D12_VERTEX_BUFFER_VIEW vertexBufferView = renderItem->Geometry->GetVertexBufferView();
+            commandList.IASetVertexBuffers(0, 1, &vertexBufferView);
+            
+            D3D12_INDEX_BUFFER_VIEW indexBufferView = renderItem->Geometry->GetIndexBufferView();
+            commandList.IASetIndexBuffer(&indexBufferView);
+            
+            commandList.IASetPrimitiveTopology(renderItem->PrimitiveTopology);
+            
+            // Offset to the CBV in the descriptor for this object and frame resource
+            UINT cbvIndex = m_CurrentFrameResourceIndex * static_cast<UINT>(m_OpaqueRenderItems.size()) + renderItem->ObjectConstantBufferIndex;
+            CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE{
+                m_CbvDescriptorHeap->GetGPUDescriptorHandleForHeapStart()
+            };
+            cbvHandle.Offset(cbvIndex, m_CbvSrvDescriptorSize);
+            commandList.SetGraphicsRootDescriptorTable(0, cbvHandle);
+            
+            commandList.DrawIndexedInstanced(
+                renderItem->IndexCount,
+                1,
+                renderItem->StartIndexLocation,
+                renderItem->BaseVertexLocation,
+                0);
+        }
+    }
+
     void ShapesApplication::UpdateObjectConstantBuffers()
     {
         UploadBuffer<ObjectConstants>* currentObjectConstantBuffer = m_CurrentFrameResource->ObjectConstantBuffer.get();

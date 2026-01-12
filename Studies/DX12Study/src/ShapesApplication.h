@@ -42,6 +42,8 @@ namespace Studies
         void UpdateObjectConstantBuffers();
         void UpdatePassConstantBuffer();
         
+        void DrawRenderItems(ID3D12GraphicsCommandList& commandList, const std::vector<RenderItem*>& renderItems);
+        
     private:
         std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_Geometries{};
         UINT m_PassCbvOffset{0};
