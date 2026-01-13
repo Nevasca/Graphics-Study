@@ -4,7 +4,7 @@
 
 namespace Studies
 {
-    bool Input::m_Inputs[Input::MAX_INPUTS] = {};
+    bool Input::m_MouseInputs[Input::MAX_MOUSE_INPUTS] = {};
     Vector2 Input::m_MousePosition = {};
 
     void Input::OnMouseDown(WPARAM buttonState, int x, int y)
@@ -27,7 +27,12 @@ namespace Studies
 
     bool Input::GetMouseButton(const MouseButton button)
     {
-        return m_Inputs[static_cast<int>(button)];
+        return m_MouseInputs[static_cast<int>(button)];
+    }
+
+    bool Input::GetKeyboardKey(const char key)
+    {
+        return GetAsyncKeyState(key) & 0x8000;
     }
 
     Vector2 Input::GetMousePosition()
@@ -37,8 +42,8 @@ namespace Studies
 
     void Input::UpdateMouseButtonState(WPARAM buttonState)
     {
-        m_Inputs[static_cast<int>(MouseButton::Left)] = (buttonState & MK_LBUTTON) != 0;
-        m_Inputs[static_cast<int>(MouseButton::Right)] = (buttonState & MK_RBUTTON) != 0;
-        m_Inputs[static_cast<int>(MouseButton::Middle)] = (buttonState & MK_MBUTTON) != 0;
+        m_MouseInputs[static_cast<int>(MouseButton::Left)] = (buttonState & MK_LBUTTON) != 0;
+        m_MouseInputs[static_cast<int>(MouseButton::Right)] = (buttonState & MK_RBUTTON) != 0;
+        m_MouseInputs[static_cast<int>(MouseButton::Middle)] = (buttonState & MK_MBUTTON) != 0;
     }
 }

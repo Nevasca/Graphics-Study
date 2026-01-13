@@ -69,6 +69,8 @@ namespace Studies
         UpdateCamera();
         UpdateObjectConstantBuffers();
         UpdatePassConstantBuffer();
+        
+        m_IsWireframe = Input::GetKeyboardKey('1'); 
 
         Draw();
     }
