@@ -87,9 +87,74 @@ namespace Studies
 
     void ShapesApplication::Draw()
     {
-        // TODO: build and submit command list for this frame
+        Microsoft::WRL::ComPtr<ID3D12CommandAllocator> cmdListAllocator = m_CurrentFrameResource->CommandListAllocator;
+        
+        ThrowIfFailed(cmdListAllocator->Reset());
+        
+        if(m_IsWireframe)
+        {
+            ThrowIfFailed(m_CommandList->Reset(cmdListAllocator.Get(), m_PipelineStateObjects["opaque_wireframe"].Get()));
+        }
+        else
+        {
+            ThrowIfFailed(m_CommandList->Reset(cmdListAllocator.Get(), m_PipelineStateObjects["opaque"].Get()));
+        }
+        
+        ResizeViewport();
+        ResizeScissors();
+        
+        CD3DX12_RESOURCE_BARRIER backBufferTransitionToRenderTarget = CD3DX12_RESOURCE_BARRIER::Transition(
+            GetCurrentBackBuffer(),
+            D3D12_RESOURCE_STATE_PRESENT,
+            D3D12_RESOURCE_STATE_RENDER_TARGET);
+        
+        m_CommandList->ResourceBarrier(1, &backBufferTransitionToRenderTarget);
+        
+        m_CommandList->ClearRenderTargetView(
+            GetCurrentBackBufferView(),
+            DirectX::Colors::LightSteelBlue,
+            0, nullptr);
+        
+        m_CommandList->ClearDepthStencilView(
+            GetCurrentDepthStencilView(),
+            D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+            1.0f, 0, 0, nullptr);
+        
+        D3D12_CPU_DESCRIPTOR_HANDLE currentBackBufferView = GetCurrentBackBufferView();
+        D3D12_CPU_DESCRIPTOR_HANDLE currentDepthStencilView = GetCurrentDepthStencilView();
+        
+        m_CommandList->OMSetRenderTargets(
+            1,
+            &currentBackBufferView,
+            true,
+            &currentDepthStencilView);
 
+        ID3D12DescriptorHeap* descriptorHeaps[] = { m_CbvDescriptorHeap.Get() };
+        m_CommandList->SetDescriptorHeaps(1, descriptorHeaps);
+        
+        m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
+        
+        int passCbvIndex = static_cast<int>(m_PassCbvOffset) + m_CurrentFrameResourceIndex;
+        CD3DX12_GPU_DESCRIPTOR_HANDLE passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE{m_CbvDescriptorHeap->GetGPUDescriptorHandleForHeapStart()};
+        passCbvHandle.Offset(passCbvIndex, m_CbvSrvDescriptorSize);
+        m_CommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+        
         DrawRenderItems(*m_CommandList.Get(), m_OpaqueRenderItems);
+        
+        CD3DX12_RESOURCE_BARRIER backBufferTransitionToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
+            GetCurrentBackBuffer(),
+            D3D12_RESOURCE_STATE_RENDER_TARGET,
+            D3D12_RESOURCE_STATE_PRESENT);
+        
+        m_CommandList->ResourceBarrier(1, &backBufferTransitionToPresent);
+        
+        ThrowIfFailed(m_CommandList->Close());
+        
+        ID3D12CommandList* commandLists[] = { m_CommandList.Get() };
+        m_CommandQueue->ExecuteCommandLists(1, commandLists);
+        
+        ThrowIfFailed(m_SwapChain->Present(0, 0));
+        m_CurrentBackBufferIndex = (m_CurrentBackBufferIndex + 1) % SWAPCHAIN_BUFFER_COUNT;
 
         m_CurrentFence++;
         m_CurrentFrameResource->Fence = m_CurrentFence;

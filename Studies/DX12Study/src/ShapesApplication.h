@@ -52,6 +52,7 @@ namespace Studies
         Microsoft::WRL::ComPtr<ID3DBlob> m_PixelShaderBytecode{nullptr};
         std::vector<D3D12_INPUT_ELEMENT_DESC> m_InputElementDescriptions{};
         std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStateObjects{};
+        bool m_IsWireframe{false};
         
         void SetupShapeGeometry();
         void SetupRenderItems();
