@@ -30,6 +30,11 @@ namespace Studies
         DirectX::XMFLOAT4X4 m_View{MathHelper::Identity4x4()};
         DirectX::XMFLOAT4X4 m_Proj{MathHelper::Identity4x4()};
         DirectX::XMFLOAT3 m_EyePositionWorld{};
+        
+        float m_Theta{1.5f * DirectX::XM_PI};
+        float m_Phi{DirectX::XM_PIDIV4};
+        float m_Radius{5.0f};
+        POINT m_LastMousePos{0,0};
 
         PassConstants m_MainPassConstants{};
         
@@ -41,6 +46,7 @@ namespace Studies
         void SetNextFrameResource();
         void UpdateObjectConstantBuffers();
         void UpdatePassConstantBuffer();
+        void UpdateCamera();
         
         void DrawRenderItems(ID3D12GraphicsCommandList& commandList, const std::vector<RenderItem*>& renderItems);
         
