@@ -64,8 +64,6 @@ namespace Studies
         
         void SetupLandGeometry();
         void SetupRenderItems();
-        void CreateDescriptorHeaps();
-        void CreateConstantBufferViews();
         void SetupShaderAndInputLayout();
         void CreatePipelineStateObjects();
         
