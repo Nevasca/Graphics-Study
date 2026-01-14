@@ -7,7 +7,7 @@
 #include <WindowsX.h>
 
 #include "Application.h"
-#include "ShapesApplication.h"
+#include "applications/ShapesApplication.h"
 
 #define MAX_LOADSTRING 100
 

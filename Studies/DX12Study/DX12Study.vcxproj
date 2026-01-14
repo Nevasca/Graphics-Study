@@ -112,7 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\CommonDX12;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\CommonDX12;$(ProjectDir);$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -128,7 +128,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\CommonDX12;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\CommonDX12;$(ProjectDir);$(ProjectDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
+    <ClInclude Include="src\applications\ShapesApplication.h" />
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\Demo.h" />
     <ClInclude Include="src\demos\BoxDemo.h" />
@@ -155,7 +156,6 @@
     <ClInclude Include="src\RenderItem.h" />
     <ClInclude Include="src\Screen.h" />
     <ClInclude Include="src\ShaderUtil.h" />
-    <ClInclude Include="src\ShapesApplication.h" />
     <ClInclude Include="src\UploadBuffer.h" />
     <ClInclude Include="src\Vector2.h" />
     <ClInclude Include="src\Vertex.h" />
@@ -172,6 +172,7 @@
     <ClCompile Include="..\Dependencies\CommonDX12\MathHelper.cpp" />
     <Content Include="data\colorBoxDemo.hlsl" />
     <ClCompile Include="src\Application.cpp" />
+    <ClCompile Include="src\applications\ShapesApplication.cpp" />
     <ClCompile Include="src\BoxApp.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -186,7 +187,6 @@
     <ClCompile Include="src\RenderItem.cpp" />
     <ClCompile Include="src\Screen.cpp" />
     <ClCompile Include="src\ShaderUtil.cpp" />
-    <ClCompile Include="src\ShapesApplication.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
     <Content Include="data\colorShapesApp.hlsl" />
