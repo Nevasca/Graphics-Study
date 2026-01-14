@@ -35,6 +35,8 @@ namespace Studies
         float m_Phi{DirectX::XM_PIDIV4};
         float m_Radius{5.0f};
         POINT m_LastMousePos{0,0};
+        float m_ZoomSensitivity{0.3f};
+        float m_MaxZoomRadius{160.f};
 
         PassConstants m_MainPassConstants{};
         

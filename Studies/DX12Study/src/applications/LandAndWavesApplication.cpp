@@ -56,6 +56,8 @@ namespace Studies
         m_CommandQueue->ExecuteCommandLists(1, commandLists);
 
         FlushCommandQueue();
+        
+        m_Radius = m_MaxZoomRadius / 2.f;
     }
 
     void LandAndWavesApplication::Tick()
@@ -285,13 +287,11 @@ namespace Studies
         }
         else if(Input::GetMouseButton(Input::MouseButton::Right))
         {
-            // Make each pixel correspond to 0.005 unit in the scene
-            float dx = 0.005f * (currentMousePosition.X - static_cast<float>(m_LastMousePos.x));
-            float dy = 0.005f * (currentMousePosition.Y - static_cast<float>(m_LastMousePos.y));
+            float dx = m_ZoomSensitivity * (currentMousePosition.X - static_cast<float>(m_LastMousePos.x));
+            float dy = m_ZoomSensitivity * (currentMousePosition.Y - static_cast<float>(m_LastMousePos.y));
 
             m_Radius += dx - dy;
-
-            m_Radius = MathHelper::Clamp(m_Radius, 3.0f, 15.f);
+            m_Radius = MathHelper::Clamp(m_Radius, 3.0f, m_MaxZoomRadius);
         }
 
         m_LastMousePos.x = static_cast<long>(currentMousePosition.X);
