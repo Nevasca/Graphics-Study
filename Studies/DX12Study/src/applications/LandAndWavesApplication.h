@@ -60,11 +60,14 @@ namespace Studies
         std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStateObjects{};
         bool m_IsWireframe{false};
         
-        void SetupShapeGeometry();
+        void SetupLandGeometry();
         void SetupRenderItems();
         void CreateDescriptorHeaps();
         void CreateConstantBufferViews();
         void SetupShaderAndInputLayout();
         void CreatePipelineStateObjects();
+        
+        float GetHillsHeight(float x, float z);
+        DirectX::XMFLOAT4 GetHillsColor(float y);
     };
 }

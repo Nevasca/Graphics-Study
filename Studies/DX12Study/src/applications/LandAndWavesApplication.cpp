@@ -37,7 +37,7 @@ namespace Studies
         CreateRenderTargetView();
         CreateDepthStencilView();
         
-        SetupShapeGeometry();
+        SetupLandGeometry();
         SetupRenderItems();
         CreateFrameResources();
         
@@ -438,192 +438,105 @@ namespace Studies
         }
     }
 
-    void LandAndWavesApplication::SetupShapeGeometry()
+    void LandAndWavesApplication::SetupLandGeometry()
     {
         GeometryGenerator generator{};
         
-        GeometryGenerator::MeshData box = generator.CreateBox(1.5f, 0.5f, 1.5f, 3);
-        GeometryGenerator::MeshData grid = generator.CreateGrid(20.f, 30.f, 60, 40);
-        GeometryGenerator::MeshData sphere = generator.CreateSphere(0.5f, 20, 20);
-        GeometryGenerator::MeshData cylinder = generator.CreateCylinder(0.5f, 0.3f, 3.f, 20, 20);
+        GeometryGenerator::MeshData grid = generator.CreateGrid(160.f, 160.f, 50, 50);
         
-        // We are concatenating all the geometry into one big vertex/index buffer
-        // So we define the regions to cover each submesh
-        UINT boxVertexOffset = 0;
-        UINT gridVertexOffset = static_cast<UINT>(box.Vertices.size());
-        UINT sphereVertexOffset = gridVertexOffset + static_cast<UINT>(grid.Vertices.size());
-        UINT cylinderVertexOffset = sphereVertexOffset + static_cast<UINT>(sphere.Vertices.size());
+        // Extract the vertex elements we are interested and apply the height function to each vertex
+        // also color vertices based on their heights so we have sand, grass and snow mountain peaks
         
-        UINT boxIndexOffset = 0;
-        UINT gridIndexOffset = static_cast<UINT>(box.Indices32.size());
-        UINT sphereIndexOffset = gridIndexOffset + static_cast<UINT>(grid.Indices32.size());
-        UINT cylinderIndexOffset = sphereIndexOffset + static_cast<UINT>(sphere.Indices32.size());
-        
-        // Define the SubmeshGeometry to the different regions of the vertex/index buffer
-        SubmeshGeometry boxSubmesh{};
-        boxSubmesh.IndexCount = static_cast<UINT>(box.Indices32.size());
-        boxSubmesh.BaseVertexLocation = static_cast<int>(boxVertexOffset);
-        boxSubmesh.StartIndexLocation = boxIndexOffset;
-        
-        SubmeshGeometry gridSubmesh{};
-        gridSubmesh.IndexCount = static_cast<UINT>(grid.Indices32.size());
-        gridSubmesh.BaseVertexLocation = static_cast<int>(gridVertexOffset);
-        gridSubmesh.StartIndexLocation = gridIndexOffset;
-        
-        SubmeshGeometry sphereSubmesh{};
-        sphereSubmesh.IndexCount = static_cast<UINT>(sphere.Indices32.size());
-        sphereSubmesh.BaseVertexLocation = static_cast<int>(sphereVertexOffset);
-        sphereSubmesh.StartIndexLocation = sphereIndexOffset;
-        
-        SubmeshGeometry cylinderSubmesh{};
-        cylinderSubmesh.IndexCount = static_cast<UINT>(cylinder.Indices32.size());
-        cylinderSubmesh.BaseVertexLocation = static_cast<int>(cylinderVertexOffset);
-        cylinderSubmesh.StartIndexLocation = cylinderIndexOffset;
-        
-        // Extract the vertex elements we are interested in and pack them on a single vertex buffer
-        auto totalVertexCount = box.Vertices.size();
-        totalVertexCount += grid.Vertices.size();
-        totalVertexCount += sphere.Vertices.size();
-        totalVertexCount += cylinder.Vertices.size();
-        
-        std::vector<Vertex> vertices{totalVertexCount};
-        UINT k = 0;
+        std::vector<Vertex> vertices{grid.Vertices.size()};
+        for (size_t i = 0; i < grid.Vertices.size(); i++)
+        {
+            DirectX::XMFLOAT3 position = grid.Vertices[i].Position;
 
-        for (size_t i = 0; i < box.Vertices.size(); i++, k++)
-        {
-            vertices[k].Position = box.Vertices[i].Position;
-            vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::DarkGreen};
+            vertices[i].Position = position;
+            vertices[i].Position.y = GetHillsHeight(position.x, position.z);
+            vertices[i].Color = GetHillsColor(vertices[i].Position.y);
         }
         
-        for (size_t i = 0; i < grid.Vertices.size(); i++, k++)
-        {
-            vertices[k].Position = grid.Vertices[i].Position;
-            vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::ForestGreen};
-        }
+        const UINT vertexBufferByteSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
         
-        for (size_t i = 0; i < sphere.Vertices.size(); i++, k++)
-        {
-            vertices[k].Position = sphere.Vertices[i].Position;
-            vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::Crimson};
-        }
-        
-        for (size_t i = 0; i < cylinder.Vertices.size(); i++, k++)
-        {
-            vertices[k].Position = cylinder.Vertices[i].Position;
-            vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::SteelBlue};
-        }
-        
-        std::vector<std::uint16_t> indices{};
-        indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
-        indices.insert(indices.end(), std::begin(grid.GetIndices16()), std::end(grid.GetIndices16()));
-        indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
-        indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
-        
-        // Create the MeshGeometry
-        const UINT vertexBufferSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
-        const UINT indexBufferSize = static_cast<UINT>(indices.size()) * sizeof(std::uint16_t);
+        std::vector<uint16_t> indices = grid.GetIndices16();
+        const UINT indexBufferByteSize = static_cast<UINT>(indices.size()) * sizeof(uint16_t);
 
         std::unique_ptr<MeshGeometry> geometry = std::make_unique<MeshGeometry>();
-        geometry->Name = "shapeGeometry";
+        geometry->Name = "landGeo";
         
-        ThrowIfFailed(D3DCreateBlob(vertexBufferSize, &geometry->VertexBufferCPU));
-        CopyMemory(geometry->VertexBufferCPU->GetBufferPointer(), vertices.data(), vertexBufferSize);
-
-        ThrowIfFailed(D3DCreateBlob(indexBufferSize, &geometry->IndexBufferCPU));
-        CopyMemory(geometry->IndexBufferCPU->GetBufferPointer(), indices.data(), indexBufferSize);
+        ThrowIfFailed(D3DCreateBlob(vertexBufferByteSize, &geometry->VertexBufferCPU));
+        CopyMemory(geometry->VertexBufferCPU->GetBufferPointer(), vertices.data(), vertexBufferByteSize);
         
-        geometry->VertexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), vertices.data(), vertexBufferSize, geometry->VertexBufferUploader);
-        geometry->IndexBufferGPU = VertexBufferUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), indices.data(), indexBufferSize, geometry->IndexBufferUploader);
+        ThrowIfFailed(D3DCreateBlob(indexBufferByteSize, &geometry->IndexBufferCPU));
+        CopyMemory(geometry->IndexBufferCPU->GetBufferPointer(), indices.data(), indexBufferByteSize);
+        
+        geometry->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), vertices.data(), vertexBufferByteSize, geometry->VertexBufferUploader);
+        geometry->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), indices.data(), indexBufferByteSize, geometry->IndexBufferUploader);
         
         geometry->VertexByteStride = sizeof(Vertex);
-        geometry->VertexBufferByteSize = vertexBufferSize;
+        geometry->VertexBufferByteSize = vertexBufferByteSize;
         geometry->IndexFormat = DXGI_FORMAT_R16_UINT;
-        geometry->IndexBufferByteSize = indexBufferSize;
+        geometry->IndexBufferByteSize = indexBufferByteSize;
         
-        geometry->DrawArgs["box"] = boxSubmesh;
-        geometry->DrawArgs["grid"] = gridSubmesh;
-        geometry->DrawArgs["sphere"] = sphereSubmesh;
-        geometry->DrawArgs["cylinder"] = cylinderSubmesh;
+        SubmeshGeometry submesh{};
+        submesh.IndexCount = static_cast<UINT>(indices.size());
+        submesh.StartIndexLocation = 0;
+        submesh.BaseVertexLocation = 0;
         
-        m_Geometries[geometry->Name] = std::move(geometry);
+        geometry->DrawArgs["grid"] = submesh;
+        
+        m_Geometries["landGeo"] = std::move(geometry);
+    }
+    
+    float LandAndWavesApplication::GetHillsHeight(float x, float z)
+    {
+        return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
+    }
+
+    DirectX::XMFLOAT4 LandAndWavesApplication::GetHillsColor(float y)
+    {
+        if (y < -10.f)
+        {
+            // Sandy beach color
+            return DirectX::XMFLOAT4{1.f, 0.96f, 0.62f, 1.f};    
+        }
+
+        if (y < 5.f)
+        {
+            // Light yellow-green
+            return DirectX::XMFLOAT4{0.48f, 0.77f, 0.46f, 1.f};
+        }
+        
+        if (y < 12.f)
+        {
+            // Dark yellow-green
+            return DirectX::XMFLOAT4{0.1f, 0.48f, 0.19f, 1.f};
+        }
+        
+        if (y < 20.f)
+        {
+            // Dark brown
+            return DirectX::XMFLOAT4{0.45f, 0.39f, 0.34f, 1.f};
+        }
+        
+        // White snow
+        return DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
     }
 
     void LandAndWavesApplication::SetupRenderItems()
     {
         using namespace DirectX;
 
-        std::unique_ptr<RenderItem> boxRenderItem = std::make_unique<RenderItem>();
-        XMStoreFloat4x4(&boxRenderItem->WorldMatrix, XMMatrixScaling(2.f, 2.f, 2.f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f));
-        boxRenderItem->ObjectConstantBufferIndex = 0;
-        boxRenderItem->Geometry = m_Geometries["shapeGeometry"].get();
-        boxRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        boxRenderItem->IndexCount = boxRenderItem->Geometry->DrawArgs["box"].IndexCount;
-        boxRenderItem->StartIndexLocation = boxRenderItem->Geometry->DrawArgs["box"].StartIndexLocation;
-        boxRenderItem->BaseVertexLocation = boxRenderItem->Geometry->DrawArgs["box"].BaseVertexLocation;
-        m_AllRenderItems.emplace_back(std::move(boxRenderItem));
-        
-        std::unique_ptr<RenderItem> gridRenderItem = std::make_unique<RenderItem>();
-        gridRenderItem->WorldMatrix = MathHelper::Identity4x4();
-        gridRenderItem->ObjectConstantBufferIndex = 1;
-        gridRenderItem->Geometry = m_Geometries["shapeGeometry"].get();
-        gridRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        gridRenderItem->IndexCount = gridRenderItem->Geometry->DrawArgs["grid"].IndexCount;
-        gridRenderItem->StartIndexLocation = gridRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
-        gridRenderItem->BaseVertexLocation = gridRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
-        m_AllRenderItems.emplace_back(std::move(gridRenderItem));
-        
-        // Build columns and spheres in rows
-        UINT objectConstantBufferIndex = 2;
-        for (int i = 0; i < 5; i++)
-        {
-            std::unique_ptr<RenderItem> leftCylinderItem = std::make_unique<RenderItem>();
-            std::unique_ptr<RenderItem> rightCylinderItem = std::make_unique<RenderItem>();
-            std::unique_ptr<RenderItem> leftSphereItem = std::make_unique<RenderItem>();
-            std::unique_ptr<RenderItem> rightSphereItem = std::make_unique<RenderItem>();
-            
-            XMMATRIX leftCylinderWorld = XMMatrixTranslation(-5.f, 1.5f, -10.f + static_cast<float>(i) * 5.f);
-            XMMATRIX rightCylinderWorld = XMMatrixTranslation(5.f, 1.5f, -10.f + static_cast<float>(i) * 5.f);
-            
-            XMMATRIX leftSphereWorld = XMMatrixTranslation(-5.f, 3.5f, -10.f + static_cast<float>(i) * 5.f);
-            XMMATRIX rightSphereWorld = XMMatrixTranslation(5.f, 3.5f, -10.f + static_cast<float>(i) * 5.f);
-            
-            XMStoreFloat4x4(&leftCylinderItem->WorldMatrix, leftCylinderWorld);
-            leftCylinderItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
-            leftCylinderItem->Geometry = m_Geometries["shapeGeometry"].get();
-            leftCylinderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-            leftCylinderItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["cylinder"].IndexCount;
-            leftCylinderItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
-            leftCylinderItem->BaseVertexLocation = leftCylinderItem->Geometry->DrawArgs["cylinder"].BaseVertexLocation;
-            
-            XMStoreFloat4x4(&rightCylinderItem->WorldMatrix, rightCylinderWorld);
-            rightCylinderItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
-            rightCylinderItem->Geometry = m_Geometries["shapeGeometry"].get();
-            rightCylinderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-            rightCylinderItem->IndexCount = rightCylinderItem->Geometry->DrawArgs["cylinder"].IndexCount;
-            rightCylinderItem->StartIndexLocation = rightCylinderItem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
-            rightCylinderItem->BaseVertexLocation = rightCylinderItem->Geometry->DrawArgs["cylinder"].BaseVertexLocation;
-            
-            XMStoreFloat4x4(&leftSphereItem->WorldMatrix, leftSphereWorld);
-            leftSphereItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
-            leftSphereItem->Geometry = m_Geometries["shapeGeometry"].get();
-            leftSphereItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-            leftSphereItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["sphere"].IndexCount;
-            leftSphereItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].StartIndexLocation;
-            leftSphereItem->BaseVertexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
-            
-            XMStoreFloat4x4(&rightSphereItem->WorldMatrix, rightSphereWorld);
-            rightSphereItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
-            rightSphereItem->Geometry = m_Geometries["shapeGeometry"].get();
-            rightSphereItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-            rightSphereItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["sphere"].IndexCount;
-            rightSphereItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].StartIndexLocation;
-            rightSphereItem->BaseVertexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].BaseVertexLocation;
-            
-            m_AllRenderItems.emplace_back(std::move(leftCylinderItem));
-            m_AllRenderItems.emplace_back(std::move(rightCylinderItem));
-            m_AllRenderItems.emplace_back(std::move(leftSphereItem));
-            m_AllRenderItems.emplace_back(std::move(rightSphereItem));
-        }
+        std::unique_ptr<RenderItem> landRenderItem = std::make_unique<RenderItem>();
+        landRenderItem->WorldMatrix = MathHelper::Identity4x4();
+        landRenderItem->ObjectConstantBufferIndex = 0;
+        landRenderItem->Geometry = m_Geometries["landGeo"].get();
+        landRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        landRenderItem->IndexCount = landRenderItem->Geometry->DrawArgs["grid"].IndexCount;
+        landRenderItem->StartIndexLocation = landRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
+        landRenderItem->BaseVertexLocation = landRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
+        m_AllRenderItems.emplace_back(std::move(landRenderItem));
         
         // All render items are opaque in this demo
         for (const auto& renderItem : m_AllRenderItems)
