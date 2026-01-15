@@ -1,10 +1,12 @@
 ﻿#pragma once
 #include <vector>
+#include <Waves.h>
 
 #include "Application.h"
 #include "FrameResource.h"
 #include "RenderItem.h"
 #include "MeshGeometry.h"
+#include "Vertex.h"
 
 namespace Studies
 {
@@ -62,12 +64,18 @@ namespace Studies
         std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStateObjects{};
         bool m_IsWireframe{false};
         
+        std::vector<std::unique_ptr<UploadBuffer<Vertex>>> m_WaveVerticesFrameResources;
+        std::unique_ptr<Waves> m_Waves;
+        RenderItem* m_WavesRenderItem{nullptr};
+        
         void SetupLandGeometry();
+        void SetupWaves();
         void SetupRenderItems();
         void SetupShaderAndInputLayout();
         void CreatePipelineStateObjects();
         
         float GetHillsHeight(float x, float z);
         DirectX::XMFLOAT4 GetHillsColor(float y);
+        void UpdateWaves();
     };
 }

@@ -38,6 +38,7 @@ namespace Studies
         CreateDepthStencilView();
         
         SetupLandGeometry();
+        SetupWaves();
         SetupRenderItems();
         CreateFrameResources();
         
@@ -68,6 +69,7 @@ namespace Studies
         UpdateCamera();
         UpdateObjectConstantBuffers();
         UpdatePassConstantBuffer();
+        UpdateWaves();
         
         m_IsWireframe = Input::GetKeyboardKey('1'); 
 
@@ -347,6 +349,12 @@ namespace Studies
         {
             m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount));
         }
+        
+        // To not add to the FrameResource class an application exclusive usage, decided to create it only on this application
+        for(int i = 0; i < Constants::NUM_FRAME_RESOURCES; i++)
+        {
+            m_WaveVerticesFrameResources.emplace_back(std::make_unique<UploadBuffer<Vertex>>(*m_Device.Get(), m_Waves->VertexCount(), false));
+        }
     }
     
     void LandAndWavesApplication::SetupLandGeometry()
@@ -399,7 +407,65 @@ namespace Studies
         
         m_Geometries["landGeo"] = std::move(geometry);
     }
-    
+
+    void LandAndWavesApplication::SetupWaves()
+    {
+        m_Waves = std::make_unique<Waves>(128, 128, 1.f, 0.03f, 4.f, 0.2f);
+        
+        std::vector<std::uint16_t> indices(3 * m_Waves->TriangleCount()); // 3 indices per face
+        assert(m_Waves->TriangleCount() < 0x0000ffff);
+        
+        // Iterate over each quad
+        int m = m_Waves->RowCount();
+        int n = m_Waves->ColumnCount();
+        int k = 0;
+        
+        for (int i = 0; i < m - 1; i++)
+        {
+            for (int j = 0; j < n - 1; j++)
+            {
+                indices[k] = i * n + j;
+                indices[k + 1] = i * n + j + 1;
+                indices[k + 2] = (i + 1) * n + j;
+                
+                indices[k + 3] = (i + 1) * n + j;
+                indices[k + 4] = i * n + j + 1;
+                indices[k + 5] = (i + 1) * n + j + 1;
+                
+                k += 6; // Next quad
+            }
+        }
+        
+        UINT vertexBufferByteSize = m_Waves->VertexCount() * sizeof(Vertex);
+        UINT indexBufferByteSize = static_cast<UINT>(indices.size()) * sizeof(uint16_t);
+
+        std::unique_ptr<MeshGeometry> geometry = std::make_unique<MeshGeometry>();
+        geometry->Name = "waterGeo";
+        
+        // Set dynamically
+        geometry->VertexBufferCPU = nullptr;
+        geometry->VertexBufferGPU = nullptr;
+        
+        ThrowIfFailed(D3DCreateBlob(indexBufferByteSize, &geometry->IndexBufferCPU));
+        CopyMemory(geometry->IndexBufferCPU->GetBufferPointer(), indices.data(), indexBufferByteSize);
+        
+        geometry->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), indices.data(), indexBufferByteSize, geometry->IndexBufferUploader);
+        
+        geometry->VertexByteStride = sizeof(Vertex);
+        geometry->VertexBufferByteSize = vertexBufferByteSize;
+        geometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+        geometry->IndexBufferByteSize = indexBufferByteSize;
+        
+        SubmeshGeometry submesh{};
+        submesh.IndexCount = static_cast<UINT>(indices.size());
+        submesh.StartIndexLocation = 0;
+        submesh.BaseVertexLocation = 0;
+        
+        geometry->DrawArgs["grid"] = submesh;
+        
+        m_Geometries["waterGeo"] = std::move(geometry);
+    }
+
     float LandAndWavesApplication::GetHillsHeight(float x, float z)
     {
         return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
@@ -435,13 +501,57 @@ namespace Studies
         return DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
     }
 
+    void LandAndWavesApplication::UpdateWaves()
+    {
+        // Every quarter second, generate a random wave
+        static float timeBase = 0.f;
+
+        if (m_Timer.GetTime() - timeBase > 0.25f)
+        {
+            timeBase += 0.25f;
+            int i = MathHelper::Rand(4, m_Waves->RowCount() - 5);
+            int j = MathHelper::Rand(4, m_Waves->ColumnCount() - 5);
+            
+            float r = MathHelper::RandF(0.2f, 0.5f);
+            
+            m_Waves->Disturb(i, j, r);
+        }
+        
+        m_Waves->Update(m_Timer.GetDeltaTime());
+        
+        // Update the wave vertex buffer with the new solution
+        UploadBuffer<Vertex>* currentWavesVertexBuffer = m_WaveVerticesFrameResources[m_CurrentFrameResourceIndex].get();
+        
+        for (int i = 0; i < m_Waves->VertexCount(); i++)
+        {
+            Vertex vertex{};
+            vertex.Position = m_Waves->Position(i);
+            vertex.Color = DirectX::XMFLOAT4(DirectX::Colors::Blue);
+            
+            currentWavesVertexBuffer->CopyData(i, vertex);
+        }
+        
+        // Set the dynamic vertex buffer of the wave render item to the current frame vertex buffer
+        m_WavesRenderItem->Geometry->VertexBufferGPU = currentWavesVertexBuffer->GetResource();
+    }
+
     void LandAndWavesApplication::SetupRenderItems()
     {
-        using namespace DirectX;
-
+        std::unique_ptr<RenderItem> wavesRenderItem = std::make_unique<RenderItem>();
+        wavesRenderItem->WorldMatrix = MathHelper::Identity4x4();
+        wavesRenderItem->ObjectConstantBufferIndex = 0;
+        wavesRenderItem->Geometry = m_Geometries["waterGeo"].get();
+        wavesRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        wavesRenderItem->IndexCount = wavesRenderItem->Geometry->DrawArgs["grid"].IndexCount;
+        wavesRenderItem->StartIndexLocation = wavesRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
+        wavesRenderItem->BaseVertexLocation = wavesRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
+        
+        m_WavesRenderItem = wavesRenderItem.get();
+        m_AllRenderItems.emplace_back(std::move(wavesRenderItem));
+        
         std::unique_ptr<RenderItem> landRenderItem = std::make_unique<RenderItem>();
         landRenderItem->WorldMatrix = MathHelper::Identity4x4();
-        landRenderItem->ObjectConstantBufferIndex = 0;
+        landRenderItem->ObjectConstantBufferIndex = 1;
         landRenderItem->Geometry = m_Geometries["landGeo"].get();
         landRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         landRenderItem->IndexCount = landRenderItem->Geometry->DrawArgs["grid"].IndexCount;
