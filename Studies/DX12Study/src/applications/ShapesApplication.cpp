@@ -196,6 +196,9 @@ namespace Studies
             cbvHandle.Offset(cbvIndex, m_CbvSrvDescriptorSize);
             commandList.SetGraphicsRootDescriptorTable(0, cbvHandle);
             
+            // Exercise 7.9.2
+            // commandList.SetGraphicsRoot32BitConstants(2, 16, renderItem->WorldMatrix.m, 0);
+
             commandList.DrawIndexedInstanced(
                 renderItem->IndexCount,
                 1,
@@ -321,6 +324,7 @@ namespace Studies
         // It's recommended to keep them under five
 
         CD3DX12_ROOT_PARAMETER rootParameters[2];
+        // CD3DX12_ROOT_PARAMETER rootParameters[3]; // Exercise 7.9.2
         
         CD3DX12_DESCRIPTOR_RANGE constantBufferViewTablePerObject;
         constantBufferViewTablePerObject.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
@@ -330,9 +334,15 @@ namespace Studies
         constantBufferViewTablePass.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
         rootParameters[1].InitAsDescriptorTable(1, &constantBufferViewTablePass);
         
+        // Exercise 7.9.2
+        // Creating as a new parameter instead of replacing parameter 0 so we don't have to comment out several places to see the exercise working
+        // But we should have replaced it and have it declared on first parameters, as we need to place most frequently updated parameters first
+        // rootParameters[2].InitAsConstants(16, 2); // float4x4 = 16 floats
+        
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
             2,
+            // 3, // Exercise 7.9.2
             rootParameters,
             0,
             nullptr,
@@ -444,7 +454,8 @@ namespace Studies
         
         GeometryGenerator::MeshData box = generator.CreateBox(1.5f, 0.5f, 1.5f, 3);
         GeometryGenerator::MeshData grid = generator.CreateGrid(20.f, 30.f, 60, 40);
-        GeometryGenerator::MeshData sphere = generator.CreateSphere(0.5f, 20, 20);
+        // GeometryGenerator::MeshData sphere = generator.CreateSphere(0.5f, 20, 20);
+        GeometryGenerator::MeshData sphere = generator.CreateGeosphere(0.5f, 3); // Exercise 7.9.1
         GeometryGenerator::MeshData cylinder = generator.CreateCylinder(0.5f, 0.3f, 3.f, 20, 20);
         
         // We are concatenating all the geometry into one big vertex/index buffer
