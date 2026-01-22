@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\applications\LandAndWavesApplication.h" />
+    <ClInclude Include="src\applications\LitWavesApplication.h" />
     <ClInclude Include="src\applications\ShapesApplication.h" />
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\Demo.h" />
@@ -176,6 +177,7 @@
     <ClCompile Include="..\Dependencies\CommonDX12\Waves.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\applications\LandAndWavesApplication.cpp" />
+    <ClCompile Include="src\applications\LitWavesApplication.cpp" />
     <ClCompile Include="src\applications\ShapesApplication.cpp" />
     <ClCompile Include="src\BoxApp.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
