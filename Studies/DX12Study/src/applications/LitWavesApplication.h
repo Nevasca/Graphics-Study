@@ -81,5 +81,7 @@ namespace Studies
         float GetHillsHeight(float x, float z);
         DirectX::XMFLOAT4 GetHillsColor(float y);
         void UpdateWaves();
+        
+        void UpdateMaterialContantBuffers();
     };
 }

@@ -70,6 +70,7 @@ namespace Studies
         UpdateCamera();
         UpdateObjectConstantBuffers();
         UpdatePassConstantBuffer();
+        UpdateMaterialContantBuffers();
         UpdateWaves();
         
         m_IsWireframe = Input::GetKeyboardKey('1'); 
@@ -257,6 +258,30 @@ namespace Studies
         
         UploadBuffer<PassConstants>* currentPassConstantBuffer = m_CurrentFrameResource->PassConstantBuffer.get();
         currentPassConstantBuffer->CopyData(0, m_MainPassConstants);
+    }
+
+    void LitWavesApplication::UpdateMaterialContantBuffers()
+    {
+        UploadBuffer<MaterialConstants>* currentMaterialConstantBuffer = m_CurrentFrameResource->MaterialConstantBuffer.get();
+
+        for (const auto & materialPair : m_Materials)
+        {
+            Material* material = materialPair.second.get();
+            
+            if (material->NumFramesDirty <= 0)
+            {
+                continue;
+            }
+            
+            MaterialConstants materialConstants{};
+            materialConstants.DiffuseAlbedo = material->DiffuseAlbedo;
+            materialConstants.FresnelR0 = material->FresnelR0;
+            materialConstants.Roughness = material->Roughness;
+            
+            currentMaterialConstantBuffer->CopyData(material->MaterialCbIndex, materialConstants);
+            
+            material->NumFramesDirty--;
+        }
     }
 
     void LitWavesApplication::UpdateCamera()
