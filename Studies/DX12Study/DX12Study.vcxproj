@@ -197,6 +197,7 @@
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
     <Content Include="data\colorShapesApp.hlsl" />
+    <Content Include="data\litWavesApp.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX12Study.rc" />

@@ -4,6 +4,7 @@
 #include <MathHelper.h>
 
 #include "Constants.h"
+#include "Material.h"
 
 namespace Studies
 {
@@ -26,7 +27,8 @@ namespace Studies
         // Index into GPU constant buffer corresponding to the object constant buffer
         UINT ObjectConstantBufferIndex{0};
         
-        // Note: multiple render items can share same geometry
+        // Note: multiple render items can share same geometry or material
+        Material* Material{nullptr};
         MeshGeometry* Geometry{nullptr};
         D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology{D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST};
         

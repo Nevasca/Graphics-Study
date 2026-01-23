@@ -140,7 +140,7 @@ namespace Studies
         m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
         ID3D12Resource* passConstantBuffer = m_CurrentFrameResource->PassConstantBuffer->GetResource();
-        m_CommandList->SetGraphicsRootConstantBufferView(1, passConstantBuffer->GetGPUVirtualAddress());
+        m_CommandList->SetGraphicsRootConstantBufferView(2, passConstantBuffer->GetGPUVirtualAddress());
         
         DrawRenderItems(*m_CommandList.Get(), m_OpaqueRenderItems);
         
@@ -171,8 +171,10 @@ namespace Studies
     void LitWavesApplication::DrawRenderItems(ID3D12GraphicsCommandList& commandList, const std::vector<RenderItem*>& renderItems)
     {
         UINT objectConstantBufferByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+        UINT materialConstantBufferByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 
         ID3D12Resource* objectConstantBuffer = m_CurrentFrameResource->ObjectConstantBuffer->GetResource();
+        ID3D12Resource* materialConstantBuffer = m_CurrentFrameResource->MaterialConstantBuffer->GetResource();
         
         for(size_t i = 0; i < renderItems.size(); i++)
         {
@@ -189,6 +191,10 @@ namespace Studies
             D3D12_GPU_VIRTUAL_ADDRESS objectConstantBufferAddress = objectConstantBuffer->GetGPUVirtualAddress();
             objectConstantBufferAddress += renderItem->ObjectConstantBufferIndex * objectConstantBufferByteSize;
             commandList.SetGraphicsRootConstantBufferView(0, objectConstantBufferAddress);
+            
+            D3D12_GPU_VIRTUAL_ADDRESS materialConstantBufferAddress = materialConstantBuffer->GetGPUVirtualAddress();
+            materialConstantBufferAddress += renderItem->Material->MaterialCbIndex * materialConstantBufferByteSize;
+            commandList.SetGraphicsRootConstantBufferView(1, materialConstantBufferAddress);
             
             commandList.DrawIndexedInstanced(
                 renderItem->IndexCount,
@@ -336,13 +342,14 @@ namespace Studies
         // We should not go overboard with number of constant buffers in our shaders for performance reasons
         // It's recommended to keep them under five
 
-        CD3DX12_ROOT_PARAMETER rootParameters[2];
+        CD3DX12_ROOT_PARAMETER rootParameters[3];
         rootParameters[0].InitAsConstantBufferView(0); // per-object CBV
         rootParameters[1].InitAsConstantBufferView(1); //per-pass CBV
+        rootParameters[2].InitAsConstantBufferView(2); //per-pass CBV
         
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
-            2,
+            3,
             rootParameters,
             0,
             nullptr,
@@ -588,6 +595,7 @@ namespace Studies
         std::unique_ptr<RenderItem> wavesRenderItem = std::make_unique<RenderItem>();
         wavesRenderItem->WorldMatrix = MathHelper::Identity4x4();
         wavesRenderItem->ObjectConstantBufferIndex = 0;
+        wavesRenderItem->Material = m_Materials["water"].get();
         wavesRenderItem->Geometry = m_Geometries["waterGeo"].get();
         wavesRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         wavesRenderItem->IndexCount = wavesRenderItem->Geometry->DrawArgs["grid"].IndexCount;
@@ -600,6 +608,7 @@ namespace Studies
         std::unique_ptr<RenderItem> landRenderItem = std::make_unique<RenderItem>();
         landRenderItem->WorldMatrix = MathHelper::Identity4x4();
         landRenderItem->ObjectConstantBufferIndex = 1;
+        landRenderItem->Material = m_Materials["grass"].get();
         landRenderItem->Geometry = m_Geometries["landGeo"].get();
         landRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         landRenderItem->IndexCount = landRenderItem->Geometry->DrawArgs["grid"].IndexCount;
@@ -616,7 +625,7 @@ namespace Studies
     
     void LitWavesApplication::SetupShaderAndInputLayout()
     {
-        const std::wstring shaderPath = L"data//colorShapesApp.hlsl";
+        const std::wstring shaderPath = L"data//litWavesApp.hlsl";
 
         m_VertexShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
         m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
