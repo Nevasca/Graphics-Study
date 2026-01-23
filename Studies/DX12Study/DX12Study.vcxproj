@@ -153,6 +153,7 @@
     <ClInclude Include="src\GameTime.h" />
     <ClInclude Include="src\Input.h" />
     <ClInclude Include="src\Material.h" />
+    <ClInclude Include="src\MaterialConstants.h" />
     <ClInclude Include="src\MeshGeometry.h" />
     <ClInclude Include="src\ObjectConstants.h" />
     <ClInclude Include="src\PassConstants.h" />

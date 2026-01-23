@@ -24,10 +24,12 @@ namespace Studies
         
         std::unique_ptr<UploadBuffer<ObjectConstants>> ObjectConstantBuffer{nullptr};
         
+        std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialConstantBuffer{nullptr};
+        
         // Fence value to mark commands up to this point. This let us check if these frame resources are still in use by the GPU
         UINT64 Fence{0};
 
-        FrameResource(ID3D12Device& device, UINT passCount, UINT objectCount);
+        FrameResource(ID3D12Device& device, UINT passCount, UINT objectCount, UINT materialCount = 0);
         ~FrameResource();
 
         FrameResource(const FrameResource& rhs) = delete;

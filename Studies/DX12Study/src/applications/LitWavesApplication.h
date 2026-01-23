@@ -4,6 +4,7 @@
 
 #include "Application.h"
 #include "FrameResource.h"
+#include "Material.h"
 #include "RenderItem.h"
 #include "MeshGeometry.h"
 #include "Vertex.h"
@@ -68,6 +69,9 @@ namespace Studies
         std::unique_ptr<Waves> m_Waves;
         RenderItem* m_WavesRenderItem{nullptr};
         
+        std::unordered_map<std::string, std::unique_ptr<Material>> m_Materials{};
+        
+        void SetupMaterials();
         void SetupLandGeometry();
         void SetupWaves();
         void SetupRenderItems();

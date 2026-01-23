@@ -37,6 +37,7 @@ namespace Studies
         CreateRenderTargetView();
         CreateDepthStencilView();
         
+        SetupMaterials();
         SetupLandGeometry();
         SetupWaves();
         SetupRenderItems();
@@ -344,10 +345,11 @@ namespace Studies
     void LitWavesApplication::CreateFrameResources()
     {
         UINT objectCount = static_cast<UINT>(m_AllRenderItems.size());
+        UINT materialCount = static_cast<UINT>(m_Materials.size());
 
         for(int i = 0; i < Constants::NUM_FRAME_RESOURCES; i++)
         {
-            m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount));
+            m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount, materialCount));
         }
         
         // To not add to the FrameResource class an application exclusive usage, decided to create it only on this application
@@ -356,7 +358,28 @@ namespace Studies
             m_WaveVerticesFrameResources.emplace_back(std::make_unique<UploadBuffer<Vertex>>(*m_Device.Get(), m_Waves->VertexCount(), false));
         }
     }
-    
+
+    void LitWavesApplication::SetupMaterials()
+    {
+        std::unique_ptr<Material> grass = std::make_unique<Material>();
+        grass->Name = "grass";
+        grass->MaterialCbIndex = 0;
+        grass->DiffuseAlbedo = DirectX::XMFLOAT4{0.2f, 0.6f, 0.6f, 1.f};
+        grass->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
+        grass->Roughness = 0.125f;
+        
+        // Not a good water material, still some tools and techniques to learn
+        std::unique_ptr<Material> water = std::make_unique<Material>();
+        water->Name = "water";
+        water->MaterialCbIndex = 1;
+        water->DiffuseAlbedo = DirectX::XMFLOAT4{0.f, 0.2f, 0.6f, 1.f};
+        water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
+        water->Roughness = 0.f;
+        
+        m_Materials["grass"] = std::move(grass);
+        m_Materials["water"] = std::move(water);
+    }
+
     void LitWavesApplication::SetupLandGeometry()
     {
         GeometryGenerator generator{};
