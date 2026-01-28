@@ -1,3 +1,17 @@
+#ifndef NUM_DIR_LIGHTS
+    #define NUM_DIR_LIGHTS 1
+#endif
+
+#ifndef NUM_POINT_LIGHTS
+    #define NUM_POINT_LIGHTS 0
+#endif
+
+#ifndef NUM_SPOT_LIGHTS
+    #define NUM_SPOT_LIGHTS 0
+#endif
+
+#include "LightingUtils.hlsl"
+
 // We should setup/organize constant buffers accordingly to update frequency
 // cbPerObject is updated per render item, while cbPass, per render pass 
 cbuffer cbPerObject : register(b0)
@@ -13,6 +27,7 @@ cbuffer cbMaterial : register(b1)
     float4x4 gMatTransform;
 };
 
+// Constant data that varies per material
 cbuffer cbPass : register(b2)
 {
     float4x4 gView;
@@ -29,6 +44,11 @@ cbuffer cbPass : register(b2)
     float gFarZ;
     float gTotalTime;
     float gDeltaTime;
+    
+    // Indices [0, NUM_DIR_LIGHTS] are directional lights
+    // Indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS + NUM_POINT_LIGHTS] are point lights
+    // Indices [NUM_POINT_LIGHTS, NUM_POINT_LIGHTS + NUM_SPOT_LIGHTS] are spot lights for a maximum of MAX_LIGHTS per object
+    Light gLights[MAX_LIGHTS];
 };
 
 struct VertexIn

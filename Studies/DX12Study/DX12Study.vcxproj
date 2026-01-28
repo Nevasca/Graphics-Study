@@ -152,6 +152,7 @@
     <ClInclude Include="src\FrameResource.h" />
     <ClInclude Include="src\GameTime.h" />
     <ClInclude Include="src\Input.h" />
+    <ClInclude Include="src\Light.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\MaterialConstants.h" />
     <ClInclude Include="src\MeshGeometry.h" />
@@ -197,6 +198,7 @@
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
     <Content Include="data\colorShapesApp.hlsl" />
+    <Content Include="data\LightingUtils.hlsl" />
     <Content Include="data\litWavesApp.hlsl" />
   </ItemGroup>
   <ItemGroup>
