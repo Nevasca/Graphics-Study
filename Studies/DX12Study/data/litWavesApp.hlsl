@@ -45,6 +45,8 @@ cbuffer cbPass : register(b2)
     float gTotalTime;
     float gDeltaTime;
     
+    float4 gAmbientLight;
+
     // Indices [0, NUM_DIR_LIGHTS] are directional lights
     // Indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS + NUM_POINT_LIGHTS] are point lights
     // Indices [NUM_POINT_LIGHTS, NUM_POINT_LIGHTS + NUM_SPOT_LIGHTS] are spot lights for a maximum of MAX_LIGHTS per object
@@ -61,7 +63,8 @@ struct VertexIn
 struct VertexOut
 {
     float4 PosHomogeneousClip : SV_POSITION;
-    float4 Color : COLOR;
+    float3 PosWorld : POSITION;
+    float3 NormalWorld : NORMAL;
 };
 
 float GetEaseInSineTime(float normalizedTime);
@@ -73,14 +76,34 @@ VertexOut VS(VertexIn vertexIn)
     // The extra vector-matrix multiplication per vertex is negligible on modern GPUs
     float4 positionWorld = mul(float4(vertexIn.PosLocal, 1.f), gWorld);
     vertexOut.PosHomogeneousClip = mul(positionWorld, gViewProj);
-
-    // TODO: implement lighting
-    vertexOut.Color = gDiffuseAlbedo;
+    
+    vertexOut.PosWorld = positionWorld.xyz;
+    // Assuming nonuniform scaling; otherwise, need to use inverse-transpose of world matrix
+    vertexOut.NormalWorld = mul(vertexIn.NormalLocal, (float3x3)gWorld);
     
     return vertexOut;
 }
 
 float4 PS(VertexOut pixelIn) : SV_Target
 {
-    return pixelIn.Color;
+    // Interpolating normal can unnormalize it, so renormalize it
+    pixelIn.NormalWorld = normalize(pixelIn.NormalWorld);
+    
+    // Vector form point being lit to eye
+    float3 toEyeWorld = normalize(gEyePositionWorld - pixelIn.PosWorld);
+    
+    // Indirect lighting
+    float4 ambient = gAmbientLight * gDiffuseAlbedo;
+
+    float shininess = 1.f - gRoughness;
+    Material material = {gDiffuseAlbedo, gFresnelR0, shininess};
+    float3 shadowFactor = 1.f;
+    float4 directLight = ComputeLighting(gLights, material, pixelIn.PosWorld, pixelIn.NormalWorld, toEyeWorld, shadowFactor);
+    
+    float4 litColor = ambient + directLight;
+    
+    // Common convention to take alpha from diffuse material
+    litColor.a = gDiffuseAlbedo.a;
+
+    return litColor;
 }
