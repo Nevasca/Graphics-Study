@@ -429,6 +429,7 @@ namespace Studies
             vertices[i].Position = position;
             vertices[i].Position.y = GetHillsHeight(position.x, position.z);
             vertices[i].Color = GetHillsColor(vertices[i].Position.y);
+            vertices[i].Normal = GetHillsNormal(position.x, position.z);
         }
         
         const UINT vertexBufferByteSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
@@ -526,6 +527,20 @@ namespace Studies
         return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
     }
 
+    DirectX::XMFLOAT3 LitWavesApplication::GetHillsNormal(float x, float z)
+    {
+        // n = (-df/dx, 1, -df/dz)
+
+        float normalX = -0.03f * z * cosf(0.1f * x) - 0.3f * cosf(0.1f * z);
+        float normalZ = -0.3f * sinf(0.1f * x) + 0.03f * x * sinf(0.1f * z);
+
+        DirectX::XMFLOAT3 normal{normalX, 1.f, normalZ};
+        DirectX::XMVECTOR unitNormal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&normal));
+        DirectX::XMStoreFloat3(&normal, unitNormal);
+        
+        return normal;
+    }
+
     DirectX::XMFLOAT4 LitWavesApplication::GetHillsColor(float y)
     {
         if (y < -10.f)
@@ -582,6 +597,7 @@ namespace Studies
             Vertex vertex{};
             vertex.Position = m_Waves->Position(i);
             vertex.Color = DirectX::XMFLOAT4(DirectX::Colors::Blue);
+            vertex.Normal = m_Waves->Normal(i);
             
             currentWavesVertexBuffer->CopyData(i, vertex);
         }
@@ -632,7 +648,8 @@ namespace Studies
         
         m_InputElementDescriptions = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
         };
     }
 

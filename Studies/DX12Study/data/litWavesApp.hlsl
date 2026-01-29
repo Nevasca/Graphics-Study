@@ -55,6 +55,7 @@ struct VertexIn
 {
     float3 PosLocal : POSITION; 
     float4 Color : COLOR;
+    float3 NormalLocal : NORMAL;
 };
 
 struct VertexOut

@@ -8,6 +8,7 @@ namespace Studies
     {
         DirectX::XMFLOAT3 Position;
         DirectX::XMFLOAT4 Color;
+        DirectX::XMFLOAT3 Normal;
         // Exercise 6.13 - 10.
         // DirectX::PackedVector::XMCOLOR Color;
     };
