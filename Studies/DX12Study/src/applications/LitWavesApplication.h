@@ -71,6 +71,9 @@ namespace Studies
         
         std::unordered_map<std::string, std::unique_ptr<Material>> m_Materials{};
         
+        float m_SunTheta{1.25f * DirectX::XM_PI};
+        float m_SunPhi{DirectX::XM_PIDIV4};
+        
         void SetupMaterials();
         void SetupLandGeometry();
         void SetupWaves();
@@ -82,7 +85,9 @@ namespace Studies
         DirectX::XMFLOAT3 GetHillsNormal(float x, float z);
         DirectX::XMFLOAT4 GetHillsColor(float y);
         void UpdateWaves();
+
+        void UpdateMaterialConstantBuffers();
         
-        void UpdateMaterialContantBuffers();
+        void UpdateSun();
     };
 }

@@ -15,6 +15,11 @@ namespace Studies
             Right,
             Middle
         };
+        
+        static constexpr char KeyLeft = VK_LEFT;
+        static constexpr char KeyRight = VK_RIGHT;
+        static constexpr char KeyUp = VK_UP;
+        static constexpr char KeyDown = VK_DOWN;
 
         static void OnMouseDown(WPARAM buttonState, int x, int y);
         static void OnMouseUp(WPARAM buttonState, int x, int y);

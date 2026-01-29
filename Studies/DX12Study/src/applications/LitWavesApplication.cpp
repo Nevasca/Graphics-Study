@@ -68,9 +68,11 @@ namespace Studies
         SetNextFrameResource();
         
         UpdateCamera();
+        UpdateSun();
+
         UpdateObjectConstantBuffers();
         UpdatePassConstantBuffer();
-        UpdateMaterialContantBuffers();
+        UpdateMaterialConstantBuffers();
         UpdateWaves();
         
         m_IsWireframe = Input::GetKeyboardKey('1'); 
@@ -262,11 +264,15 @@ namespace Studies
         m_MainPassConstants.TotalTime = m_Timer.GetTime();
         m_MainPassConstants.DeltaTime = m_Timer.GetDeltaTime();
         
+        DirectX::XMVECTOR lightDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
+        DirectX::XMStoreFloat3(&m_MainPassConstants.Lights[0].Direction, lightDirection);
+        m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8, 0.8, 0.7f};
+        
         UploadBuffer<PassConstants>* currentPassConstantBuffer = m_CurrentFrameResource->PassConstantBuffer.get();
         currentPassConstantBuffer->CopyData(0, m_MainPassConstants);
     }
 
-    void LitWavesApplication::UpdateMaterialContantBuffers()
+    void LitWavesApplication::UpdateMaterialConstantBuffers()
     {
         UploadBuffer<MaterialConstants>* currentMaterialConstantBuffer = m_CurrentFrameResource->MaterialConstantBuffer.get();
 
@@ -335,6 +341,33 @@ namespace Studies
 
         DirectX::XMMATRIX proj = DirectX::XMMatrixPerspectiveFovLH(0.25f * MathHelper::Pi, Screen::GetAspectRatio(), 1.f, 1000.f);
         DirectX::XMStoreFloat4x4(&m_Proj, proj);
+    }
+
+    void LitWavesApplication::UpdateSun()
+    {
+        const float deltaTime = m_Timer.GetDeltaTime();
+        
+        if (Input::GetKeyboardKey(Input::KeyLeft))
+        {
+            m_SunTheta -= 1.f * deltaTime;
+        }
+        
+        if (Input::GetKeyboardKey(Input::KeyRight))
+        {
+            m_SunTheta += 1.f * deltaTime;
+        }
+        
+        if (Input::GetKeyboardKey(Input::KeyUp))
+        {
+            m_SunPhi -= 1.f * deltaTime;
+        }
+        
+        if (Input::GetKeyboardKey(Input::KeyDown))
+        {
+            m_SunPhi += 1.f * deltaTime;
+        }
+        
+        m_SunPhi = MathHelper::Clamp(m_SunPhi, 0.1f, DirectX::XM_PIDIV2);
     }
 
     void LitWavesApplication::CreateRootSignature()
