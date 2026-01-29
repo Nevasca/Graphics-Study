@@ -264,6 +264,8 @@ namespace Studies
         m_MainPassConstants.TotalTime = m_Timer.GetTime();
         m_MainPassConstants.DeltaTime = m_Timer.GetDeltaTime();
         
+        m_MainPassConstants.AmbientLight = DirectX::XMFLOAT4{0.08f, 0.14f, 0.17f, 1.f};
+        
         DirectX::XMVECTOR lightDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
         DirectX::XMStoreFloat3(&m_MainPassConstants.Lights[0].Direction, lightDirection);
         m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8, 0.8, 0.7f};
