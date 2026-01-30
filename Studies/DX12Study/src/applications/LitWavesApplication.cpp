@@ -379,7 +379,7 @@ namespace Studies
 
         CD3DX12_ROOT_PARAMETER rootParameters[3];
         rootParameters[0].InitAsConstantBufferView(0); // per-object CBV
-        rootParameters[1].InitAsConstantBufferView(1); //per-pass CBV
+        rootParameters[1].InitAsConstantBufferView(1); //per-material CBV
         rootParameters[2].InitAsConstantBufferView(2); //per-pass CBV
         
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc
