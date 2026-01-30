@@ -8,6 +8,7 @@
 
 #include "Application.h"
 #include "applications/LitWavesApplication.h"
+#include "applications/LitShapesApplication.h"
 
 #define MAX_LOADSTRING 100
 
@@ -51,7 +52,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DX12STUDY));
     
-    g_Application = std::make_unique<Studies::LitWavesApplication>();
+    g_Application = std::make_unique<Studies::LitShapesApplication>();
     g_Application->Initialize(g_hWnd, g_WindowWidth, g_WindowHeight);
 
     MSG msg{};
