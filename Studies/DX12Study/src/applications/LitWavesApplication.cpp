@@ -268,7 +268,12 @@ namespace Studies
         
         DirectX::XMVECTOR lightDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
         DirectX::XMStoreFloat3(&m_MainPassConstants.Lights[0].Direction, lightDirection);
-        m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8, 0.8, 0.7f};
+        m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8f, 0.8f, 0.7f};
+
+        // Exercise 8.16.1
+        constexpr float pulseSpeed = 10.f;
+        float pulseFactor = 0.5f + sinf(pulseSpeed * m_Timer.GetTime()) / 2.f;
+        m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{1.0f * pulseFactor, 0.0f, 0.0f};
         
         UploadBuffer<PassConstants>* currentPassConstantBuffer = m_CurrentFrameResource->PassConstantBuffer.get();
         currentPassConstantBuffer->CopyData(0, m_MainPassConstants);
@@ -434,6 +439,9 @@ namespace Studies
         grass->DiffuseAlbedo = DirectX::XMFLOAT4{0.2f, 0.6f, 0.6f, 1.f};
         grass->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
         grass->Roughness = 0.125f;
+        
+        // Exercise 8.16.2
+        grass->Roughness = 0.875f;
         
         // Not a good water material, still some tools and techniques to learn
         std::unique_ptr<Material> water = std::make_unique<Material>();
