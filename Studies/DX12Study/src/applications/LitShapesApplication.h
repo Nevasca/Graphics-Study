@@ -52,6 +52,7 @@ namespace Studies
         
     private:
         std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> m_Geometries{};
+        std::unordered_map<std::string, std::unique_ptr<Material>> m_Materials{};
         UINT m_PassCbvOffset{0};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_CbvDescriptorHeap{};
         Microsoft::WRL::ComPtr<ID3DBlob> m_VertexShaderBytecode{nullptr};
@@ -60,11 +61,18 @@ namespace Studies
         std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStateObjects{};
         bool m_IsWireframe{false};
         
+        float m_SunTheta{1.25f * DirectX::XM_PI};
+        float m_SunPhi{DirectX::XM_PIDIV4};
+        
+        void SetupMaterials();
         void SetupShapeGeometry();
         void SetupRenderItems();
         void CreateDescriptorHeaps();
         void CreateConstantBufferViews();
         void SetupShaderAndInputLayout();
         void CreatePipelineStateObjects();
+        
+        void UpdateMaterialConstantBuffers();
+        void UpdateSun();
     };
 }

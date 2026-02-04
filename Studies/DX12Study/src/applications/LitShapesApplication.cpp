@@ -37,6 +37,7 @@ namespace Studies
         CreateRenderTargetView();
         CreateDepthStencilView();
         
+        SetupMaterials();
         SetupShapeGeometry();
         SetupRenderItems();
         CreateFrameResources();
@@ -67,7 +68,9 @@ namespace Studies
         SetNextFrameResource();
         
         UpdateCamera();
+        UpdateSun();
         UpdateObjectConstantBuffers();
+        UpdateMaterialConstantBuffers();
         UpdatePassConstantBuffer();
         
         m_IsWireframe = Input::GetKeyboardKey('1'); 
@@ -142,7 +145,7 @@ namespace Studies
         int passCbvIndex = static_cast<int>(m_PassCbvOffset) + m_CurrentFrameResourceIndex;
         CD3DX12_GPU_DESCRIPTOR_HANDLE passCbvHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE{m_CbvDescriptorHeap->GetGPUDescriptorHandleForHeapStart()};
         passCbvHandle.Offset(passCbvIndex, m_CbvSrvDescriptorSize);
-        m_CommandList->SetGraphicsRootDescriptorTable(1, passCbvHandle);
+        m_CommandList->SetGraphicsRootDescriptorTable(2, passCbvHandle);
         
         DrawRenderItems(*m_CommandList.Get(), m_OpaqueRenderItems);
         
@@ -173,8 +176,10 @@ namespace Studies
     void LitShapesApplication::DrawRenderItems(ID3D12GraphicsCommandList& commandList, const std::vector<RenderItem*>& renderItems)
     {
         UINT objectConstantBufferByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
+        UINT materialConstantBufferByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 
         ID3D12Resource* objectConstantBuffer = m_CurrentFrameResource->ObjectConstantBuffer->GetResource();
+        ID3D12Resource* materialConstantBuffer = m_CurrentFrameResource->MaterialConstantBuffer->GetResource();
         
         for(size_t i = 0; i < renderItems.size(); i++)
         {
@@ -195,9 +200,10 @@ namespace Studies
             };
             cbvHandle.Offset(cbvIndex, m_CbvSrvDescriptorSize);
             commandList.SetGraphicsRootDescriptorTable(0, cbvHandle);
-            
-            // Exercise 7.9.2
-            // commandList.SetGraphicsRoot32BitConstants(2, 16, renderItem->WorldMatrix.m, 0);
+
+            D3D12_GPU_VIRTUAL_ADDRESS materialCbvAddress = materialConstantBuffer->GetGPUVirtualAddress();
+            materialCbvAddress += renderItem->Material->MaterialCbIndex * materialConstantBufferByteSize;
+            commandList.SetGraphicsRootConstantBufferView(1, materialCbvAddress);
 
             commandList.DrawIndexedInstanced(
                 renderItem->IndexCount,
@@ -228,6 +234,30 @@ namespace Studies
             
             // Next frame resource need to be updated too
             renderItem->NumFramesDirty--;
+        }
+    }
+
+    void LitShapesApplication::UpdateMaterialConstantBuffers()
+    {
+        UploadBuffer<MaterialConstants>* currentMaterialConstantBuffer = m_CurrentFrameResource->MaterialConstantBuffer.get();
+
+        for (const auto & materialPair : m_Materials)
+        {
+            Material* material = materialPair.second.get();
+            
+            if (material->NumFramesDirty <= 0)
+            {
+                continue;
+            }
+            
+            MaterialConstants materialConstants{};
+            materialConstants.DiffuseAlbedo = material->DiffuseAlbedo;
+            materialConstants.FresnelR0 = material->FresnelR0;
+            materialConstants.Roughness = material->Roughness;
+            
+            currentMaterialConstantBuffer->CopyData(material->MaterialCbIndex, materialConstants);
+            
+            material->NumFramesDirty--;
         }
     }
 
@@ -264,6 +294,12 @@ namespace Studies
         
         m_MainPassConstants.TotalTime = m_Timer.GetTime();
         m_MainPassConstants.DeltaTime = m_Timer.GetDeltaTime();
+        
+        m_MainPassConstants.AmbientLight = DirectX::XMFLOAT4{0.08f, 0.14f, 0.17f, 1.f};
+        
+        DirectX::XMVECTOR lightDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
+        DirectX::XMStoreFloat3(&m_MainPassConstants.Lights[0].Direction, lightDirection);
+        m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8f, 0.8f, 0.7f};
         
         UploadBuffer<PassConstants>* currentPassConstantBuffer = m_CurrentFrameResource->PassConstantBuffer.get();
         currentPassConstantBuffer->CopyData(0, m_MainPassConstants);
@@ -318,21 +354,50 @@ namespace Studies
         DirectX::XMStoreFloat4x4(&m_Proj, proj);
     }
 
+    void LitShapesApplication::UpdateSun()
+    {
+        const float deltaTime = m_Timer.GetDeltaTime();
+        
+        if (Input::GetKeyboardKey(Input::KeyLeft))
+        {
+            m_SunTheta -= 1.f * deltaTime;
+        }
+        
+        if (Input::GetKeyboardKey(Input::KeyRight))
+        {
+            m_SunTheta += 1.f * deltaTime;
+        }
+        
+        if (Input::GetKeyboardKey(Input::KeyUp))
+        {
+            m_SunPhi -= 1.f * deltaTime;
+        }
+        
+        if (Input::GetKeyboardKey(Input::KeyDown))
+        {
+            m_SunPhi += 1.f * deltaTime;
+        }
+        
+        m_SunPhi = MathHelper::Clamp(m_SunPhi, 0.1f, DirectX::XM_PIDIV2);
+    }
+
     void LitShapesApplication::CreateRootSignature()
     {
         // We should not go overboard with number of constant buffers in our shaders for performance reasons
         // It's recommended to keep them under five
 
-        CD3DX12_ROOT_PARAMETER rootParameters[2];
+        CD3DX12_ROOT_PARAMETER rootParameters[3];
         // CD3DX12_ROOT_PARAMETER rootParameters[3]; // Exercise 7.9.2
         
         CD3DX12_DESCRIPTOR_RANGE constantBufferViewTablePerObject;
         constantBufferViewTablePerObject.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
         rootParameters[0].InitAsDescriptorTable(1, &constantBufferViewTablePerObject);
         
+        rootParameters[1].InitAsConstantBufferView(1);
+        
         CD3DX12_DESCRIPTOR_RANGE constantBufferViewTablePass;
-        constantBufferViewTablePass.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-        rootParameters[1].InitAsDescriptorTable(1, &constantBufferViewTablePass);
+        constantBufferViewTablePass.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2);
+        rootParameters[2].InitAsDescriptorTable(1, &constantBufferViewTablePass);
         
         // Exercise 7.9.2
         // Creating as a new parameter instead of replacing parameter 0 so we don't have to comment out several places to see the exercise working
@@ -341,7 +406,7 @@ namespace Studies
         
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
-            2,
+            3,
             // 3, // Exercise 7.9.2
             rootParameters,
             0,
@@ -370,10 +435,11 @@ namespace Studies
     void LitShapesApplication::CreateFrameResources()
     {
         UINT objectCount = static_cast<UINT>(m_AllRenderItems.size());
+        UINT materialCount = static_cast<UINT>(m_Materials.size());
 
         for(int i = 0; i < Constants::NUM_FRAME_RESOURCES; i++)
         {
-            m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount));
+            m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount, materialCount));
         }
     }
     
@@ -447,6 +513,42 @@ namespace Studies
             m_Device->CreateConstantBufferView(&constantBufferViewDesc, handle);
         }
     }
+    
+    void LitShapesApplication::SetupMaterials()
+    {
+        std::unique_ptr<Material> box = std::make_unique<Material>();
+        box->Name = "box";
+        box->MaterialCbIndex = 0;
+        box->DiffuseAlbedo = DirectX::XMFLOAT4{0.78f, 0.78f, 0.66f, 1.f};
+        box->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
+        box->Roughness = 0.8f;
+        
+        std::unique_ptr<Material> grid = std::make_unique<Material>();
+        grid->Name = "grid";
+        grid->MaterialCbIndex = 1;
+        grid->DiffuseAlbedo = DirectX::XMFLOAT4{0.51f, 0.69f, 0.61f, 1.f};
+        grid->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
+        grid->Roughness = 0.9f;
+        
+        std::unique_ptr<Material> sphere = std::make_unique<Material>();
+        sphere->Name = "sphere";
+        sphere->MaterialCbIndex = 2;
+        sphere->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 0.26f, 0.4f, 1.f};
+        sphere->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
+        sphere->Roughness = 0.f;
+        
+        std::unique_ptr<Material> cylinder = std::make_unique<Material>();
+        cylinder->Name = "cylinder";
+        cylinder->MaterialCbIndex = 3;
+        cylinder->DiffuseAlbedo = DirectX::XMFLOAT4{0.98f, 0.8f, 0.68f, 1.f};
+        cylinder->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
+        cylinder->Roughness = 0.3f;
+        
+        m_Materials["box"] = std::move(box);
+        m_Materials["grid"] = std::move(grid);
+        m_Materials["sphere"] = std::move(sphere);
+        m_Materials["cylinder"] = std::move(cylinder);
+    }
 
     void LitShapesApplication::SetupShapeGeometry()
     {
@@ -504,24 +606,28 @@ namespace Studies
         {
             vertices[k].Position = box.Vertices[i].Position;
             vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::DarkGreen};
+            vertices[k].Normal = box.Vertices[i].Normal;
         }
         
         for (size_t i = 0; i < grid.Vertices.size(); i++, k++)
         {
             vertices[k].Position = grid.Vertices[i].Position;
             vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::ForestGreen};
+            vertices[k].Normal = grid.Vertices[i].Normal;
         }
         
         for (size_t i = 0; i < sphere.Vertices.size(); i++, k++)
         {
             vertices[k].Position = sphere.Vertices[i].Position;
             vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::Crimson};
+            vertices[k].Normal = sphere.Vertices[i].Normal;
         }
         
         for (size_t i = 0; i < cylinder.Vertices.size(); i++, k++)
         {
             vertices[k].Position = cylinder.Vertices[i].Position;
             vertices[k].Color = DirectX::XMFLOAT4{DirectX::Colors::SteelBlue};
+            vertices[k].Normal = cylinder.Vertices[i].Normal;
         }
         
         std::vector<std::uint16_t> indices{};
@@ -567,6 +673,7 @@ namespace Studies
         XMStoreFloat4x4(&boxRenderItem->WorldMatrix, XMMatrixScaling(2.f, 2.f, 2.f) * XMMatrixTranslation(0.0f, 0.5f, 0.0f));
         boxRenderItem->ObjectConstantBufferIndex = 0;
         boxRenderItem->Geometry = m_Geometries["shapeGeometry"].get();
+        boxRenderItem->Material = m_Materials["box"].get();
         boxRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         boxRenderItem->IndexCount = boxRenderItem->Geometry->DrawArgs["box"].IndexCount;
         boxRenderItem->StartIndexLocation = boxRenderItem->Geometry->DrawArgs["box"].StartIndexLocation;
@@ -577,6 +684,7 @@ namespace Studies
         gridRenderItem->WorldMatrix = MathHelper::Identity4x4();
         gridRenderItem->ObjectConstantBufferIndex = 1;
         gridRenderItem->Geometry = m_Geometries["shapeGeometry"].get();
+        gridRenderItem->Material = m_Materials["grid"].get();
         gridRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         gridRenderItem->IndexCount = gridRenderItem->Geometry->DrawArgs["grid"].IndexCount;
         gridRenderItem->StartIndexLocation = gridRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
@@ -601,6 +709,7 @@ namespace Studies
             XMStoreFloat4x4(&leftCylinderItem->WorldMatrix, leftCylinderWorld);
             leftCylinderItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
             leftCylinderItem->Geometry = m_Geometries["shapeGeometry"].get();
+            leftCylinderItem->Material = m_Materials["cylinder"].get();
             leftCylinderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
             leftCylinderItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["cylinder"].IndexCount;
             leftCylinderItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
@@ -609,6 +718,7 @@ namespace Studies
             XMStoreFloat4x4(&rightCylinderItem->WorldMatrix, rightCylinderWorld);
             rightCylinderItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
             rightCylinderItem->Geometry = m_Geometries["shapeGeometry"].get();
+            rightCylinderItem->Material = m_Materials["cylinder"].get();
             rightCylinderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
             rightCylinderItem->IndexCount = rightCylinderItem->Geometry->DrawArgs["cylinder"].IndexCount;
             rightCylinderItem->StartIndexLocation = rightCylinderItem->Geometry->DrawArgs["cylinder"].StartIndexLocation;
@@ -617,6 +727,7 @@ namespace Studies
             XMStoreFloat4x4(&leftSphereItem->WorldMatrix, leftSphereWorld);
             leftSphereItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
             leftSphereItem->Geometry = m_Geometries["shapeGeometry"].get();
+            leftSphereItem->Material = m_Materials["sphere"].get();
             leftSphereItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
             leftSphereItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["sphere"].IndexCount;
             leftSphereItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].StartIndexLocation;
@@ -625,6 +736,7 @@ namespace Studies
             XMStoreFloat4x4(&rightSphereItem->WorldMatrix, rightSphereWorld);
             rightSphereItem->ObjectConstantBufferIndex = objectConstantBufferIndex++;
             rightSphereItem->Geometry = m_Geometries["shapeGeometry"].get();
+            rightSphereItem->Material = m_Materials["sphere"].get();
             rightSphereItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
             rightSphereItem->IndexCount = leftCylinderItem->Geometry->DrawArgs["sphere"].IndexCount;
             rightSphereItem->StartIndexLocation = leftCylinderItem->Geometry->DrawArgs["sphere"].StartIndexLocation;
@@ -645,14 +757,15 @@ namespace Studies
     
     void LitShapesApplication::SetupShaderAndInputLayout()
     {
-        const std::wstring shaderPath = L"data//colorShapesApp.hlsl";
+        const std::wstring shaderPath = L"data//litShapesApp.hlsl";
 
         m_VertexShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
         m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
         
         m_InputElementDescriptions = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
         };
     }
 
