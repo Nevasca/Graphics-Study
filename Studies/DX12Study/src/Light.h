@@ -9,6 +9,7 @@ namespace Studies
         float FalloffStart; // Point/Spot light only
         DirectX::XMFLOAT3 Direction; // Directional/Spot light only
         float FalloffEnd; // Point/Spot light only
+        DirectX::XMFLOAT3 Position; // Point light only
         float SpotPower; // Spot light only
     };
 }
