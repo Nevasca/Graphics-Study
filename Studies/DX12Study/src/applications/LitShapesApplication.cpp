@@ -41,6 +41,7 @@ namespace Studies
         SetupShapeGeometry();
         SetupRenderItems();
         CreateFrameResources();
+        SetupPointLights();
         
         CreateDescriptorHeaps();
         CreateConstantBufferViews();
@@ -297,9 +298,9 @@ namespace Studies
         
         m_MainPassConstants.AmbientLight = DirectX::XMFLOAT4{0.08f, 0.14f, 0.17f, 1.f};
         
-        DirectX::XMVECTOR lightDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
-        DirectX::XMStoreFloat3(&m_MainPassConstants.Lights[0].Direction, lightDirection);
-        m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8f, 0.8f, 0.7f};
+        // DirectX::XMVECTOR lightDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
+        // DirectX::XMStoreFloat3(&m_MainPassConstants.Lights[0].Direction, lightDirection);
+        // m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8f, 0.8f, 0.7f};
         
         UploadBuffer<PassConstants>* currentPassConstantBuffer = m_CurrentFrameResource->PassConstantBuffer.get();
         currentPassConstantBuffer->CopyData(0, m_MainPassConstants);
@@ -442,7 +443,29 @@ namespace Studies
             m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount, materialCount));
         }
     }
-    
+
+    void LitShapesApplication::SetupPointLights()
+    {
+        using namespace DirectX;
+
+        int pointLightIndex = 0;
+
+        for (int i = 0; i < 5; i++)
+        {
+            m_MainPassConstants.Lights[pointLightIndex].Strength = XMFLOAT3{1.f, 1.f, 1.f};
+            m_MainPassConstants.Lights[pointLightIndex].FalloffStart = 2.f;
+            m_MainPassConstants.Lights[pointLightIndex].FalloffEnd = 12.f;
+            m_MainPassConstants.Lights[pointLightIndex].Position = XMFLOAT3{-5.5f, 6.0f, -10.f + static_cast<float>(i) * 5.f};
+            pointLightIndex++;
+
+            m_MainPassConstants.Lights[pointLightIndex].Strength = XMFLOAT3{1.f, 1.f, 1.f};
+            m_MainPassConstants.Lights[pointLightIndex].FalloffStart = 2.f;
+            m_MainPassConstants.Lights[pointLightIndex].FalloffEnd = 12.f;
+            m_MainPassConstants.Lights[pointLightIndex].Position = XMFLOAT3{5.5f, 6.0f, -10.f + static_cast<float>(i) * 5.f};
+            pointLightIndex++;
+        }
+    }
+
     void LitShapesApplication::CreateDescriptorHeaps()
     {
         UINT objectCount = static_cast<UINT>(m_OpaqueRenderItems.size());
@@ -556,8 +579,8 @@ namespace Studies
         
         GeometryGenerator::MeshData box = generator.CreateBox(1.5f, 0.5f, 1.5f, 3);
         GeometryGenerator::MeshData grid = generator.CreateGrid(20.f, 30.f, 60, 40);
-        // GeometryGenerator::MeshData sphere = generator.CreateSphere(0.5f, 20, 20);
-        GeometryGenerator::MeshData sphere = generator.CreateGeosphere(0.5f, 3); // Exercise 7.9.1
+        GeometryGenerator::MeshData sphere = generator.CreateSphere(0.5f, 20, 20);
+        // GeometryGenerator::MeshData sphere = generator.CreateGeosphere(0.5f, 3); // Exercise 7.9.1
         GeometryGenerator::MeshData cylinder = generator.CreateCylinder(0.5f, 0.3f, 3.f, 20, 20);
         
         // We are concatenating all the geometry into one big vertex/index buffer
@@ -759,13 +782,21 @@ namespace Studies
     {
         const std::wstring shaderPath = L"data//litShapesApp.hlsl";
 
+        // Exercise 8.16.5 (setting no dir light and 10 point lights)
+        D3D_SHADER_MACRO defines[] = {
+            "NUM_DIR_LIGHTS", "0",
+            "NUM_POINT_LIGHTS", "10",
+            "NUM_SPOT_LIGHTS", "0",
+            nullptr, nullptr
+        };
+
         m_VertexShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
-        m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
+        m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, defines, "PS", "ps_5_0");
         
         m_InputElementDescriptions = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
         };
     }
 

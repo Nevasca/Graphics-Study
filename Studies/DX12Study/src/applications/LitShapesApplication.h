@@ -74,5 +74,8 @@ namespace Studies
         
         void UpdateMaterialConstantBuffers();
         void UpdateSun();
+        
+        // Exercise 8.16.5
+        void SetupPointLights();
     };
 }
