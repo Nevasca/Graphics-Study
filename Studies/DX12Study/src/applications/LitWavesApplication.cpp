@@ -271,9 +271,9 @@ namespace Studies
         m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8f, 0.8f, 0.7f};
 
         // Exercise 8.16.1
-        constexpr float pulseSpeed = 10.f;
-        float pulseFactor = 0.5f + sinf(pulseSpeed * m_Timer.GetTime()) / 2.f;
-        m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{1.0f * pulseFactor, 0.0f, 0.0f};
+        // constexpr float pulseSpeed = 10.f;
+        // float pulseFactor = 0.5f + sinf(pulseSpeed * m_Timer.GetTime()) / 2.f;
+        // m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{1.0f * pulseFactor, 0.0f, 0.0f};
         
         UploadBuffer<PassConstants>* currentPassConstantBuffer = m_CurrentFrameResource->PassConstantBuffer.get();
         currentPassConstantBuffer->CopyData(0, m_MainPassConstants);
@@ -691,8 +691,8 @@ namespace Studies
         
         m_InputElementDescriptions = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
         };
     }
 
