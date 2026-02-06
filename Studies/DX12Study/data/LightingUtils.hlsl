@@ -39,6 +39,36 @@ float3 SchlickFresnel(float3 r0, float3 normal, float3 lightVec)
     return reflectPercent;
 }
 
+float GetToonNdotl(float ndotl)
+{
+    if(ndotl > 0.5f)
+    {
+        return 1.f;
+    }
+    
+    if(ndotl > 0.f)
+    {
+        return 0.6f;
+    }
+    
+    return 0.4f;
+}
+
+float GetToonRoughness(float roughnessFactor)
+{
+    if (roughnessFactor > 0.8f)
+    {
+        return 0.8f;
+    }
+    
+    if (roughnessFactor > 0.1f)
+    {
+        return 0.5f;
+    }
+    
+    return 0.f;
+}
+
 // Compute ammout of light reflected into the eye; sum of diffuse reflectance and specular reflectance
 float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, Material mat)
 {
@@ -48,6 +78,9 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
     float3 halfVec = normalize(toEye + lightVec);
     
     float roughnessFactor = (m + 8.f) * pow(max(dot(halfVec, normal), 0.f), m) / 8.f;
+#if TOON_SHADING
+    roughnessFactor = GetToonRoughness(roughnessFactor);
+#endif
     
     float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec);
     
@@ -65,6 +98,9 @@ float3 ComputeDirectionalLight(Light l, Material mat, float3 normal, float3 toEy
     
     // Scale light down by Lambert's cosine law
     float ndotl = max(dot(lightVec, normal), 0.f);
+#if TOON_SHADING
+    ndotl = GetToonNdotl(ndotl);
+#endif
     float3 lightStrength = l.Strength * ndotl;
     
     return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
@@ -88,6 +124,9 @@ float3 ComputePointLight(Light l, Material mat, float3 pos, float3 normal, float
     
     // Scale light down by Lambert's cosine law
     float ndotl = max(dot(lightVec, normal), 0.f);
+#if TOON_SHADING
+    ndotl = GetToonNdotl(ndotl);
+#endif
     float3 lightStrength = l.Strength * ndotl;
     
     // Attenuate light by distance
@@ -115,6 +154,9 @@ float3 ComputeSpotLight(Light l, Material mat, float3 pos, float3 normal, float3
     
     // Scale light down by Lambert's cosine law
     float ndotl = max(dot(lightVec, normal), 0.f);
+#if TOON_SHADING
+    ndotl = GetToonNdotl(ndotl);
+#endif
     float3 lightStrength = l.Strength * ndotl;
     
     // Attenuate light by distance

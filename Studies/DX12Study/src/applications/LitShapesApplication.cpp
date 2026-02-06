@@ -448,17 +448,19 @@ namespace Studies
     {
         using namespace DirectX;
 
+        // XMFLOAT3 lightStrength{1.f, 1.f, 1.f};
+        XMFLOAT3 lightStrength{0.7f, 0.7f, 0.7f}; // Exercise 8.16.6 (too bright on 1.f with toon shading)
         int pointLightIndex = 0;
 
         for (int i = 0; i < 5; i++)
         {
-            m_MainPassConstants.Lights[pointLightIndex].Strength = XMFLOAT3{1.f, 1.f, 1.f};
+            m_MainPassConstants.Lights[pointLightIndex].Strength = lightStrength;
             m_MainPassConstants.Lights[pointLightIndex].FalloffStart = 2.f;
             m_MainPassConstants.Lights[pointLightIndex].FalloffEnd = 12.f;
             m_MainPassConstants.Lights[pointLightIndex].Position = XMFLOAT3{-5.5f, 6.0f, -10.f + static_cast<float>(i) * 5.f};
             pointLightIndex++;
 
-            m_MainPassConstants.Lights[pointLightIndex].Strength = XMFLOAT3{1.f, 1.f, 1.f};
+            m_MainPassConstants.Lights[pointLightIndex].Strength = lightStrength;
             m_MainPassConstants.Lights[pointLightIndex].FalloffStart = 2.f;
             m_MainPassConstants.Lights[pointLightIndex].FalloffEnd = 12.f;
             m_MainPassConstants.Lights[pointLightIndex].Position = XMFLOAT3{5.5f, 6.0f, -10.f + static_cast<float>(i) * 5.f};
@@ -787,6 +789,7 @@ namespace Studies
             "NUM_DIR_LIGHTS", "0",
             "NUM_POINT_LIGHTS", "10",
             "NUM_SPOT_LIGHTS", "0",
+            "TOON_SHADING", "1", // Exercise 8.16.6
             nullptr, nullptr
         };
 

@@ -685,9 +685,15 @@ namespace Studies
     void LitWavesApplication::SetupShaderAndInputLayout()
     {
         const std::wstring shaderPath = L"data//litWavesApp.hlsl";
+        
+        // Exercise 8.16.6
+        D3D_SHADER_MACRO defines[] = {
+            "TOON_SHADING", "1", 
+            nullptr, nullptr
+        };
 
         m_VertexShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
-        m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");
+        m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, defines, "PS", "ps_5_0");
         
         m_InputElementDescriptions = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
