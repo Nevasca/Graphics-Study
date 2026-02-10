@@ -36,7 +36,8 @@ namespace Studies
         CreateDepthStencilDescriptorHeap();
         CreateRenderTargetView();
         CreateDepthStencilView();
-        
+
+        SetupTextures();
         SetupMaterials();
         SetupLandGeometry();
         SetupWaves();
@@ -429,6 +430,20 @@ namespace Studies
         {
             m_WaveVerticesFrameResources.emplace_back(std::make_unique<UploadBuffer<Vertex>>(*m_Device.Get(), m_Waves->VertexCount(), false));
         }
+    }
+
+    void CrateApplication::SetupTextures()
+    {
+        m_WoodCrateTexture = std::make_unique<Texture>();
+        
+        m_WoodCrateTexture->Name = "WoodCrateTexture";
+        m_WoodCrateTexture->FileName = L"data//textures//WoodCrate01.dds";
+        
+        ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_Device.Get(),
+            m_CommandList.Get(),
+            m_WoodCrateTexture->FileName.c_str(),
+            m_WoodCrateTexture->Resource,
+            m_WoodCrateTexture->UploadHeapResource));
     }
 
     void CrateApplication::SetupMaterials()

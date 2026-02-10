@@ -8,6 +8,7 @@
 #include "RenderItem.h"
 #include "MeshGeometry.h"
 #include "Vertex.h"
+#include "Texture.h"
 
 namespace Studies
 {
@@ -74,6 +75,9 @@ namespace Studies
         float m_SunTheta{1.25f * DirectX::XM_PI};
         float m_SunPhi{DirectX::XM_PIDIV4};
         
+        std::unique_ptr<Texture> m_WoodCrateTexture;
+        
+        void SetupTextures();
         void SetupMaterials();
         void SetupLandGeometry();
         void SetupWaves();
