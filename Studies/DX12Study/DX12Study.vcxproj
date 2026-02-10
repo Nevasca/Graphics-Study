@@ -162,6 +162,7 @@
     <ClInclude Include="src\RenderItem.h" />
     <ClInclude Include="src\Screen.h" />
     <ClInclude Include="src\ShaderUtil.h" />
+    <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\UploadBuffer.h" />
     <ClInclude Include="src\Vector2.h" />
     <ClInclude Include="src\Vertex.h" />
