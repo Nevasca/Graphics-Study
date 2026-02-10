@@ -176,7 +176,6 @@
     <ClCompile Include="..\Dependencies\CommonDX12\GameTimer.cpp" />
     <ClCompile Include="..\Dependencies\CommonDX12\GeometryGenerator.cpp" />
     <ClCompile Include="..\Dependencies\CommonDX12\MathHelper.cpp" />
-    <Content Include="data\colorBoxDemo.hlsl" />
     <ClCompile Include="..\Dependencies\CommonDX12\Waves.cpp" />
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\applications\LandAndWavesApplication.cpp" />
@@ -199,10 +198,11 @@
     <ClCompile Include="src\ShaderUtil.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
-    <Content Include="data\colorShapesApp.hlsl" />
-    <Content Include="data\LightingUtils.hlsl" />
-    <Content Include="data\litShapesApp.hlsl" />
-    <Content Include="data\litWavesApp.hlsl" />
+    <Content Include="data\shaders\colorBoxDemo.hlsl" />
+    <Content Include="data\shaders\colorShapesApp.hlsl" />
+    <Content Include="data\shaders\LightingUtils.hlsl" />
+    <Content Include="data\shaders\litShapesApp.hlsl" />
+    <Content Include="data\shaders\litWavesApp.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX12Study.rc" />

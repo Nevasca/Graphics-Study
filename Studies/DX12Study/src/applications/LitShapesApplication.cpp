@@ -782,7 +782,7 @@ namespace Studies
     
     void LitShapesApplication::SetupShaderAndInputLayout()
     {
-        const std::wstring shaderPath = L"data//litShapesApp.hlsl";
+        const std::wstring shaderPath = L"data//shaders//litShapesApp.hlsl";
 
         // Exercise 8.16.5 (setting no dir light and 10 point lights)
         D3D_SHADER_MACRO defines[] = {

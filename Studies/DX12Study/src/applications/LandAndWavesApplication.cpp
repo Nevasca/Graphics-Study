@@ -568,7 +568,7 @@ namespace Studies
     
     void LandAndWavesApplication::SetupShaderAndInputLayout()
     {
-        const std::wstring shaderPath = L"data//colorShapesApp.hlsl";
+        const std::wstring shaderPath = L"data//shaders//colorShapesApp.hlsl";
 
         m_VertexShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
         m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "PS", "ps_5_0");

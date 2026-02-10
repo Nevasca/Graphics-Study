@@ -684,7 +684,7 @@ namespace Studies
     
     void LitWavesApplication::SetupShaderAndInputLayout()
     {
-        const std::wstring shaderPath = L"data//litWavesApp.hlsl";
+        const std::wstring shaderPath = L"data//shaders//litWavesApp.hlsl";
         
         // Exercise 8.16.6
         D3D_SHADER_MACRO defines[] = {
