@@ -80,6 +80,7 @@ namespace Studies
         
         void SetupTextures();
         void CreateSRVDescriptorHeap();
+        void CreateSRVViews();
 
         void SetupMaterials();
         void SetupLandGeometry();

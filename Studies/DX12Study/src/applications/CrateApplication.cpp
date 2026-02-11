@@ -39,6 +39,7 @@ namespace Studies
 
         SetupTextures();
         CreateSRVDescriptorHeap();
+        CreateSRVViews();
 
         SetupMaterials();
         SetupLandGeometry();
@@ -456,6 +457,29 @@ namespace Studies
         srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         
         ThrowIfFailed(m_Device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_SrvDescriptorHeap.GetAddressOf())));
+    }
+
+    void CrateApplication::CreateSRVViews()
+    {
+        CD3DX12_CPU_DESCRIPTOR_HANDLE handle{m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart()};
+        
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        // When we sample a texture in shader, it returns a vector with texture data. In case we wanted to reorder the vector components, such as swapping red and green components,
+        // we could do that with the Shader4ComponentMapping var. As we don't want the reordering, we specify default 
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        // How GPU should interpret data. If we created the resource with typeless format, we must specify a non-typeless format here
+        srvDesc.Format = m_WoodCrateTexture->Resource->GetDesc().Format;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        srvDesc.Texture2D.MipLevels = m_WoodCrateTexture->Resource->GetDesc().MipLevels;
+        // Minimum mipmap level that can be accessed. 0.0f means all mipmap levels can be accessed. 
+        // If we set 3.0f for example, only mipmap levels from 3.0 to MipCount -1 could be accessed
+        srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+        
+        m_Device->CreateShaderResourceView(m_WoodCrateTexture->Resource.Get(), &srvDesc, handle);
+        
+        // If we had more textures, we would need to offset the handle and create next
+        // handle.Offset(1, m_CbvSrvDescriptorSize);
     }
 
     void CrateApplication::SetupMaterials()
