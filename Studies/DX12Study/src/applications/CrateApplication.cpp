@@ -142,11 +142,14 @@ namespace Studies
             &currentBackBufferView,
             true,
             &currentDepthStencilView);
+        
+        ID3D12DescriptorHeap* descriptorHeaps[] = { m_SrvDescriptorHeap.Get() };
+        m_CommandList->SetDescriptorHeaps(1, descriptorHeaps);
 
         m_CommandList->SetGraphicsRootSignature(m_RootSignature.Get());
 
         ID3D12Resource* passConstantBuffer = m_CurrentFrameResource->PassConstantBuffer->GetResource();
-        m_CommandList->SetGraphicsRootConstantBufferView(2, passConstantBuffer->GetGPUVirtualAddress());
+        m_CommandList->SetGraphicsRootConstantBufferView(3, passConstantBuffer->GetGPUVirtualAddress());
         
         DrawRenderItems(*m_CommandList.Get(), m_OpaqueRenderItems);
         
@@ -193,14 +196,18 @@ namespace Studies
             commandList.IASetIndexBuffer(&indexBufferView);
             
             commandList.IASetPrimitiveTopology(renderItem->PrimitiveTopology);
+
+            CD3DX12_GPU_DESCRIPTOR_HANDLE diffuseTextureHandle{m_SrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart()};
+            diffuseTextureHandle.Offset(renderItem->Material->DiffuseSrvHeapIndex, m_CbvSrvDescriptorSize);
+            commandList.SetGraphicsRootDescriptorTable(0, diffuseTextureHandle);
             
             D3D12_GPU_VIRTUAL_ADDRESS objectConstantBufferAddress = objectConstantBuffer->GetGPUVirtualAddress();
             objectConstantBufferAddress += renderItem->ObjectConstantBufferIndex * objectConstantBufferByteSize;
-            commandList.SetGraphicsRootConstantBufferView(0, objectConstantBufferAddress);
+            commandList.SetGraphicsRootConstantBufferView(1, objectConstantBufferAddress);
             
             D3D12_GPU_VIRTUAL_ADDRESS materialConstantBufferAddress = materialConstantBuffer->GetGPUVirtualAddress();
             materialConstantBufferAddress += renderItem->Material->MaterialCbIndex * materialConstantBufferByteSize;
-            commandList.SetGraphicsRootConstantBufferView(1, materialConstantBufferAddress);
+            commandList.SetGraphicsRootConstantBufferView(2, materialConstantBufferAddress);
             
             commandList.DrawIndexedInstanced(
                 renderItem->IndexCount,
@@ -386,14 +393,21 @@ namespace Studies
         // We should not go overboard with number of constant buffers in our shaders for performance reasons
         // It's recommended to keep them under five
 
-        CD3DX12_ROOT_PARAMETER rootParameters[3];
-        rootParameters[0].InitAsConstantBufferView(0); // per-object CBV
-        rootParameters[1].InitAsConstantBufferView(1); //per-material CBV
-        rootParameters[2].InitAsConstantBufferView(2); //per-pass CBV
+        CD3DX12_ROOT_PARAMETER rootParameters[4];
+
+        D3D12_DESCRIPTOR_RANGE srvDescriptorRange{};
+        srvDescriptorRange.NumDescriptors = 1;
+        srvDescriptorRange.BaseShaderRegister = 0;
+        srvDescriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+        rootParameters[0].InitAsDescriptorTable(1, &srvDescriptorRange);
+
+        rootParameters[1].InitAsConstantBufferView(0); // per-object CBV
+        rootParameters[2].InitAsConstantBufferView(1); //per-material CBV
+        rootParameters[3].InitAsConstantBufferView(2); //per-pass CBV
         
         CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc
         {
-            3,
+            4,
             rootParameters,
             0,
             nullptr,
@@ -487,6 +501,7 @@ namespace Studies
         std::unique_ptr<Material> grass = std::make_unique<Material>();
         grass->Name = "grass";
         grass->MaterialCbIndex = 0;
+        grass->DiffuseSrvHeapIndex = 0;
         grass->DiffuseAlbedo = DirectX::XMFLOAT4{0.2f, 0.6f, 0.6f, 1.f};
         grass->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
         grass->Roughness = 0.125f;
@@ -498,6 +513,7 @@ namespace Studies
         std::unique_ptr<Material> water = std::make_unique<Material>();
         water->Name = "water";
         water->MaterialCbIndex = 1;
+        water->DiffuseSrvHeapIndex = 0;
         water->DiffuseAlbedo = DirectX::XMFLOAT4{0.f, 0.2f, 0.6f, 1.f};
         water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
         water->Roughness = 0.f;

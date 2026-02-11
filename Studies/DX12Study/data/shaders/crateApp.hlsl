@@ -14,6 +14,9 @@
 
 // We should setup/organize constant buffers accordingly to update frequency
 // cbPerObject is updated per render item, while cbPass, per render pass 
+
+Texture2D gDiffuseMap : register(t0);
+
 cbuffer cbPerObject : register(b0)
 {
     float4x4 gWorld;
