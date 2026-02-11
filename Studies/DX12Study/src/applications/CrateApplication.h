@@ -76,8 +76,11 @@ namespace Studies
         float m_SunPhi{DirectX::XM_PIDIV4};
         
         std::unique_ptr<Texture> m_WoodCrateTexture;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SrvDescriptorHeap{};
         
         void SetupTextures();
+        void CreateSRVDescriptorHeap();
+
         void SetupMaterials();
         void SetupLandGeometry();
         void SetupWaves();

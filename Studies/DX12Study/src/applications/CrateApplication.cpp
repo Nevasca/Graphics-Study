@@ -38,6 +38,8 @@ namespace Studies
         CreateDepthStencilView();
 
         SetupTextures();
+        CreateSRVDescriptorHeap();
+
         SetupMaterials();
         SetupLandGeometry();
         SetupWaves();
@@ -444,6 +446,16 @@ namespace Studies
             m_WoodCrateTexture->FileName.c_str(),
             m_WoodCrateTexture->Resource,
             m_WoodCrateTexture->UploadHeapResource));
+    }
+
+    void CrateApplication::CreateSRVDescriptorHeap()
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
+        srvHeapDesc.NumDescriptors = 3;
+        srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        
+        ThrowIfFailed(m_Device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(m_SrvDescriptorHeap.GetAddressOf())));
     }
 
     void CrateApplication::SetupMaterials()
