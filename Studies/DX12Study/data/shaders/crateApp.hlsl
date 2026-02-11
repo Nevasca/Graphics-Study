@@ -16,6 +16,12 @@
 // cbPerObject is updated per render item, while cbPass, per render pass 
 
 Texture2D gDiffuseMap : register(t0);
+SamplerState gSamplerPointWrap : register(s0);
+SamplerState gSamplerPointClamp : register(s1);
+SamplerState gSamplerLinearWrap : register(s2);
+SamplerState gSamplerLinearClamp : register(s3);
+SamplerState gSamplerAnisoWrap : register(s4);
+SamplerState gSamplerAnisoClamp : register(s5);
 
 cbuffer cbPerObject : register(b0)
 {

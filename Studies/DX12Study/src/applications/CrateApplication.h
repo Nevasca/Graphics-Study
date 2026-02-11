@@ -81,6 +81,7 @@ namespace Studies
         void SetupTextures();
         void CreateSRVDescriptorHeap();
         void CreateSRVViews();
+        std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
         void SetupMaterials();
         void SetupLandGeometry();
