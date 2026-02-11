@@ -735,7 +735,7 @@ namespace Studies
     
     void CrateApplication::SetupShaderAndInputLayout()
     {
-        const std::wstring shaderPath = L"data//shaders//litWavesApp.hlsl";
+        const std::wstring shaderPath = L"data//shaders//crateApp.hlsl";
         
         // Exercise 8.16.6
         D3D_SHADER_MACRO defines[] = {

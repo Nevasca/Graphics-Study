@@ -203,6 +203,7 @@
     <ClCompile Include="src\VertexBufferUtil.cpp" />
     <Content Include="data\shaders\colorBoxDemo.hlsl" />
     <Content Include="data\shaders\colorShapesApp.hlsl" />
+    <Content Include="data\shaders\crateApp.hlsl" />
     <Content Include="data\shaders\LightingUtils.hlsl" />
     <Content Include="data\shaders\litShapesApp.hlsl" />
     <Content Include="data\shaders\litWavesApp.hlsl" />
