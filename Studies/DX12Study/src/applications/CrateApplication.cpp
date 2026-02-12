@@ -74,6 +74,7 @@ namespace Studies
         
         UpdateCamera();
         UpdateSun();
+        AnimateMaterials();
 
         UpdateObjectConstantBuffers();
         UpdatePassConstantBuffer();
@@ -311,7 +312,10 @@ namespace Studies
             materialConstants.DiffuseAlbedo = material->DiffuseAlbedo;
             materialConstants.FresnelR0 = material->FresnelR0;
             materialConstants.Roughness = material->Roughness;
-            
+
+            DirectX::XMMATRIX matTransform = DirectX::XMLoadFloat4x4(&material->MatTransform);
+            DirectX::XMStoreFloat4x4(&materialConstants.MatTransform, DirectX::XMMatrixTranspose(matTransform));
+
             currentMaterialConstantBuffer->CopyData(material->MaterialCbIndex, materialConstants);
             
             material->NumFramesDirty--;
@@ -485,9 +489,20 @@ namespace Studies
             grassTexture->FileName.c_str(),
             grassTexture->Resource,
             grassTexture->UploadHeapResource));
+        
+        std::unique_ptr<Texture> waterTexture = std::make_unique<Texture>();
+        waterTexture->Name = "WaterTexture";
+        waterTexture->FileName = L"data//textures//Water.dds";
+        
+        ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_Device.Get(),
+            m_CommandList.Get(),
+            waterTexture->FileName.c_str(),
+            waterTexture->Resource,
+            waterTexture->UploadHeapResource));
 
         m_Textures["woodCrate"] = std::move(woodCrateTexture);
         m_Textures["grass"] = std::move(grassTexture);
+        m_Textures["water"] = std::move(waterTexture);
     }
 
     void CrateApplication::CreateSRVDescriptorHeap()
@@ -597,9 +612,8 @@ namespace Studies
         std::unique_ptr<Material> water = std::make_unique<Material>();
         water->Name = "water";
         water->MaterialCbIndex = 1;
-        water->DiffuseSrvHeapIndex = 0;
-        water->DiffuseAlbedo = DirectX::XMFLOAT4{0.f, 0.2f, 0.6f, 1.f};
-        water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
+        water->DiffuseSrvHeapIndex = 2;
+        water->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};        water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
         water->Roughness = 0.f;
         
         std::unique_ptr<Material> crate = std::make_unique<Material>();
@@ -850,11 +864,43 @@ namespace Studies
             vertex.Color = DirectX::XMFLOAT4(DirectX::Colors::Blue);
             vertex.Normal = m_Waves->Normal(i);
             
+            // Derives tex-coord from position by
+            // mapping [-w/2, w/2] -> [0,1]
+            vertex.TexCoord.x = 0.5f + vertex.Position.x / m_Waves->Width();
+            vertex.TexCoord.y = 0.5f + vertex.Position.z / m_Waves->Depth();
+            
             currentWavesVertexBuffer->CopyData(i, vertex);
         }
         
         // Set the dynamic vertex buffer of the wave render item to the current frame vertex buffer
         m_WavesRenderItem->Geometry->VertexBufferGPU = currentWavesVertexBuffer->GetResource();
+    }
+
+    void CrateApplication::AnimateMaterials()
+    {
+        // Scroll water texture coordinates
+        Material* waterMaterial = m_Materials["water"].get();
+        
+        float& tu = waterMaterial->MatTransform(3, 0);
+        float& tv = waterMaterial->MatTransform(3, 1);
+        
+        tu += 0.1f * m_Timer.GetDeltaTime();
+        tv += 0.02f * m_Timer.GetDeltaTime();
+        
+        if (tu >= 1.f)
+        {
+            tu -= 1.f;
+        }
+        
+        if (tv >= 1.f)
+        {
+            tv -= 1.f;
+        }
+        
+        waterMaterial->MatTransform(3, 0) = tu;
+        waterMaterial->MatTransform(3, 1) = tv;
+        
+        waterMaterial->NumFramesDirty = Constants::NUM_FRAME_RESOURCES;
     }
 
     void CrateApplication::SetupRenderItems()

@@ -99,5 +99,6 @@ namespace Studies
         void UpdateMaterialConstantBuffers();
         
         void UpdateSun();
+        void AnimateMaterials();
     };
 }
