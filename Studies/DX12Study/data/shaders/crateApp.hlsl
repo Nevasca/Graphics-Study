@@ -26,6 +26,7 @@ SamplerState gSamplerAnisoClamp : register(s5);
 cbuffer cbPerObject : register(b0)
 {
     float4x4 gWorld;
+    float4x4 gTexTransform;
 };
 
 cbuffer cbMaterial : register(b1)
@@ -92,11 +93,16 @@ VertexOut VS(VertexIn vertexIn)
     // Assuming nonuniform scaling; otherwise, need to use inverse-transpose of world matrix
     vertexOut.NormalWorld = mul(vertexIn.NormalLocal, (float3x3)gWorld);
     
+    float4 texCoord = mul(float4(vertexIn.TexCoord, 0.f, 1.f), gTexTransform);
+    vertexOut.TexCoord = mul(texCoord, gMatTransform).xy;
+    
     return vertexOut;
 }
 
 float4 PS(VertexOut pixelIn) : SV_Target
 {
+    float4 diffuseAlbedo = gDiffuseMap.Sample(gSamplerAnisoWrap, pixelIn.TexCoord) * gDiffuseAlbedo;
+    
     // Interpolating normal can unnormalize it, so renormalize it
     pixelIn.NormalWorld = normalize(pixelIn.NormalWorld);
     
@@ -104,17 +110,17 @@ float4 PS(VertexOut pixelIn) : SV_Target
     float3 toEyeWorld = normalize(gEyePositionWorld - pixelIn.PosWorld);
     
     // Indirect lighting
-    float4 ambient = gAmbientLight * gDiffuseAlbedo;
+    float4 ambient = gAmbientLight * diffuseAlbedo;
 
     float shininess = 1.f - gRoughness;
-    Material material = {gDiffuseAlbedo, gFresnelR0, shininess};
+    Material material = {diffuseAlbedo, gFresnelR0, shininess};
     float3 shadowFactor = 1.f;
     float4 directLight = ComputeLighting(gLights, material, pixelIn.PosWorld, pixelIn.NormalWorld, toEyeWorld, shadowFactor);
     
     float4 litColor = ambient + directLight;
     
     // Common convention to take alpha from diffuse material
-    litColor.a = gDiffuseAlbedo.a;
+    litColor.a = diffuseAlbedo.a;
 
     return litColor;
 }
