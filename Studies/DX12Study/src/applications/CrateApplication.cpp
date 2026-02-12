@@ -743,7 +743,7 @@ namespace Studies
     void CrateApplication::SetupCrate()
     {
         GeometryGenerator generator{};
-        GeometryGenerator::MeshData crate = generator.CreateBox(2.f, 2.f, 2.f, 1);
+        GeometryGenerator::MeshData crate = generator.CreateBox(6.f, 6.f, 6.f, 1);
         
         std::vector<Vertex> vertices{crate.Vertices.size()};
 
@@ -931,8 +931,7 @@ namespace Studies
         m_AllRenderItems.emplace_back(std::move(landRenderItem));
         
         std::unique_ptr<RenderItem> crateRenderItem = std::make_unique<RenderItem>();
-        DirectX::XMMATRIX crateMatrix = DirectX::XMMatrixTranslation(0.0f, 1.0f, 0.0f);
-        DirectX::XMStoreFloat4x4(&crateRenderItem->WorldMatrix, crateMatrix);
+        DirectX::XMStoreFloat4x4(&crateRenderItem->WorldMatrix, DirectX::XMMatrixTranslation(-4.0f, 1.0f, 0.0f));
         crateRenderItem->ObjectConstantBufferIndex = 2;
         crateRenderItem->Material = m_Materials["crate"].get();
         crateRenderItem->Geometry = m_Geometries["crateGeo"].get();
