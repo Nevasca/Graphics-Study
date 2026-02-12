@@ -745,7 +745,7 @@ namespace Studies
     void CrateApplication::SetupCrate()
     {
         GeometryGenerator generator{};
-        GeometryGenerator::MeshData crate = generator.CreateBox(6.f, 6.f, 6.f, 1);
+        GeometryGenerator::MeshData crate = generator.CreateBox(6.f, 6.f, 6.f, 0);
         
         std::vector<Vertex> vertices{crate.Vertices.size()};
 
