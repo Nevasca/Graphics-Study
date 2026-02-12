@@ -7,7 +7,7 @@
 #include <WindowsX.h>
 
 #include "Application.h"
-#include "applications/CrateApplication.h"
+#include "applications/BlendingApplication.h"
 
 #define MAX_LOADSTRING 100
 
@@ -51,7 +51,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DX12STUDY));
     
-    g_Application = std::make_unique<Studies::CrateApplication>();
+    g_Application = std::make_unique<Studies::BlendingApplication>();
     g_Application->Initialize(g_hWnd, g_WindowWidth, g_WindowHeight);
 
     MSG msg{};
