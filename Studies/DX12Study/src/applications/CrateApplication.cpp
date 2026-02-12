@@ -232,9 +232,12 @@ namespace Studies
             }
             
             DirectX::XMMATRIX worldMatrix =  DirectX::XMLoadFloat4x4(&renderItem->WorldMatrix);
+            DirectX::XMMATRIX texTransform = DirectX::XMLoadFloat4x4(&renderItem->TexTransform);
+
             ObjectConstants objectConstants;
             DirectX::XMStoreFloat4x4(&objectConstants.World, DirectX::XMMatrixTranspose(worldMatrix));
-            
+            DirectX::XMStoreFloat4x4(&objectConstants.TexTransform, DirectX::XMMatrixTranspose(texTransform));
+
             currentObjectConstantBuffer->CopyData(renderItem->ObjectConstantBufferIndex, objectConstants);
             
             // Next frame resource need to be updated too
@@ -463,22 +466,34 @@ namespace Studies
 
     void CrateApplication::SetupTextures()
     {
-        m_WoodCrateTexture = std::make_unique<Texture>();
-        
-        m_WoodCrateTexture->Name = "WoodCrateTexture";
-        m_WoodCrateTexture->FileName = L"data//textures//WoodCrate01.dds";
+        std::unique_ptr<Texture> woodCrateTexture = std::make_unique<Texture>();
+        woodCrateTexture->Name = "WoodCrateTexture";
+        woodCrateTexture->FileName = L"data//textures//WoodCrate01.dds";
         
         ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_Device.Get(),
             m_CommandList.Get(),
-            m_WoodCrateTexture->FileName.c_str(),
-            m_WoodCrateTexture->Resource,
-            m_WoodCrateTexture->UploadHeapResource));
+            woodCrateTexture->FileName.c_str(),
+            woodCrateTexture->Resource,
+            woodCrateTexture->UploadHeapResource));
+        
+        std::unique_ptr<Texture> grassTexture = std::make_unique<Texture>();
+        grassTexture->Name = "GrassTexture";
+        grassTexture->FileName = L"data//textures//Grass.dds";
+        
+        ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_Device.Get(),
+            m_CommandList.Get(),
+            grassTexture->FileName.c_str(),
+            grassTexture->Resource,
+            grassTexture->UploadHeapResource));
+
+        m_Textures["woodCrate"] = std::move(woodCrateTexture);
+        m_Textures["grass"] = std::move(grassTexture);
     }
 
     void CrateApplication::CreateSRVDescriptorHeap()
     {
         D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc{};
-        srvHeapDesc.NumDescriptors = 3;
+        srvHeapDesc.NumDescriptors = static_cast<UINT>(m_Textures.size());
         srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         
@@ -488,24 +503,28 @@ namespace Studies
     void CrateApplication::CreateSRVViews()
     {
         CD3DX12_CPU_DESCRIPTOR_HANDLE handle{m_SrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart()};
+
+        for (const auto& element : m_Textures)
+        {
+            Texture* texture = element.second.get();
+            
+            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+            // When we sample a texture in shader, it returns a vector with texture data. In case we wanted to reorder the vector components, such as swapping red and green components,
+            // we could do that with the Shader4ComponentMapping var. As we don't want the reordering, we specify default 
+            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+            // How GPU should interpret data. If we created the resource with typeless format, we must specify a non-typeless format here
+            srvDesc.Format = texture->Resource->GetDesc().Format;
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            srvDesc.Texture2D.MipLevels = texture->Resource->GetDesc().MipLevels;
+            // Minimum mipmap level that can be accessed. 0.0f means all mipmap levels can be accessed. 
+            // If we set 3.0f for example, only mipmap levels from 3.0 to MipCount -1 could be accessed
+            srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
         
-        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
-        // When we sample a texture in shader, it returns a vector with texture data. In case we wanted to reorder the vector components, such as swapping red and green components,
-        // we could do that with the Shader4ComponentMapping var. As we don't want the reordering, we specify default 
-        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        // How GPU should interpret data. If we created the resource with typeless format, we must specify a non-typeless format here
-        srvDesc.Format = m_WoodCrateTexture->Resource->GetDesc().Format;
-        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        srvDesc.Texture2D.MostDetailedMip = 0;
-        srvDesc.Texture2D.MipLevels = m_WoodCrateTexture->Resource->GetDesc().MipLevels;
-        // Minimum mipmap level that can be accessed. 0.0f means all mipmap levels can be accessed. 
-        // If we set 3.0f for example, only mipmap levels from 3.0 to MipCount -1 could be accessed
-        srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-        
-        m_Device->CreateShaderResourceView(m_WoodCrateTexture->Resource.Get(), &srvDesc, handle);
-        
-        // If we had more textures, we would need to offset the handle and create next
-        // handle.Offset(1, m_CbvSrvDescriptorSize);
+            m_Device->CreateShaderResourceView(texture->Resource.Get(), &srvDesc, handle);
+
+            handle.Offset(1, m_CbvSrvDescriptorSize);
+        }
     }
 
     std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> CrateApplication::GetStaticSamplers()
@@ -566,8 +585,8 @@ namespace Studies
         std::unique_ptr<Material> grass = std::make_unique<Material>();
         grass->Name = "grass";
         grass->MaterialCbIndex = 0;
-        grass->DiffuseSrvHeapIndex = 0;
-        grass->DiffuseAlbedo = DirectX::XMFLOAT4{0.2f, 0.6f, 0.6f, 1.f};
+        grass->DiffuseSrvHeapIndex = 1;
+        grass->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
         grass->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
         grass->Roughness = 0.125f;
         
@@ -855,6 +874,7 @@ namespace Studies
         
         std::unique_ptr<RenderItem> landRenderItem = std::make_unique<RenderItem>();
         landRenderItem->WorldMatrix = MathHelper::Identity4x4();
+        DirectX::XMStoreFloat4x4(&landRenderItem->TexTransform, DirectX::XMMatrixScaling(5.f, 5.f, 1.f));
         landRenderItem->ObjectConstantBufferIndex = 1;
         landRenderItem->Material = m_Materials["grass"].get();
         landRenderItem->Geometry = m_Geometries["landGeo"].get();

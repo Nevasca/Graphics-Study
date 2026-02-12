@@ -75,7 +75,7 @@ namespace Studies
         float m_SunTheta{1.25f * DirectX::XM_PI};
         float m_SunPhi{DirectX::XM_PIDIV4};
         
-        std::unique_ptr<Texture> m_WoodCrateTexture;
+        std::unordered_map<std::string, std::unique_ptr<Texture>> m_Textures{};
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_SrvDescriptorHeap{};
         
         void SetupTextures();
