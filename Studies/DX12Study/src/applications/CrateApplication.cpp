@@ -44,6 +44,7 @@ namespace Studies
         SetupMaterials();
         SetupLandGeometry();
         SetupWaves();
+        SetupCrate();
         SetupRenderItems();
         CreateFrameResources();
         
@@ -582,8 +583,17 @@ namespace Studies
         water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
         water->Roughness = 0.f;
         
+        std::unique_ptr<Material> crate = std::make_unique<Material>();
+        crate->Name = "crate";
+        crate->MaterialCbIndex = 2;
+        crate->DiffuseSrvHeapIndex = 0;
+        crate->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+        crate->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
+        crate->Roughness = 0.125f;
+        
         m_Materials["grass"] = std::move(grass);
         m_Materials["water"] = std::move(water);
+        m_Materials["crate"] = std::move(crate);
     }
 
     void CrateApplication::SetupLandGeometry()
@@ -604,6 +614,7 @@ namespace Studies
             vertices[i].Position.y = GetHillsHeight(position.x, position.z);
             vertices[i].Color = GetHillsColor(vertices[i].Position.y);
             vertices[i].Normal = GetHillsNormal(position.x, position.z);
+            vertices[i].TexCoord = grid.Vertices[i].TexC;
         }
         
         const UINT vertexBufferByteSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
@@ -694,6 +705,53 @@ namespace Studies
         geometry->DrawArgs["grid"] = submesh;
         
         m_Geometries["waterGeo"] = std::move(geometry);
+    }
+
+    void CrateApplication::SetupCrate()
+    {
+        GeometryGenerator generator{};
+        GeometryGenerator::MeshData crate = generator.CreateBox(2.f, 2.f, 2.f, 1);
+        
+        std::vector<Vertex> vertices{crate.Vertices.size()};
+
+        for (int i = 0; i < crate.Vertices.size(); i++)
+        {
+            vertices[i].Position = crate.Vertices[i].Position;
+            vertices[i].Color = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+            vertices[i].Normal = crate.Vertices[i].Normal;
+            vertices[i].TexCoord = crate.Vertices[i].TexC;
+        }
+        
+        UINT vertexBufferByteSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
+
+        std::vector<GeometryGenerator::uint16> indices = crate.GetIndices16();
+        UINT indexBufferByteSize = static_cast<UINT>(indices.size()) * sizeof(uint16_t);
+        
+        std::unique_ptr<MeshGeometry> geometry = std::make_unique<MeshGeometry>();
+        geometry->Name = "crateGeo";
+        
+        ThrowIfFailed(D3DCreateBlob(vertexBufferByteSize, &geometry->VertexBufferCPU));
+        CopyMemory(geometry->VertexBufferCPU->GetBufferPointer(), vertices.data(), vertexBufferByteSize);
+        
+        ThrowIfFailed(D3DCreateBlob(indexBufferByteSize, &geometry->IndexBufferCPU));
+        CopyMemory(geometry->IndexBufferCPU->GetBufferPointer(), indices.data(), indexBufferByteSize);
+        
+        geometry->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), vertices.data(), vertexBufferByteSize, geometry->VertexBufferUploader);
+        geometry->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), indices.data(), indexBufferByteSize, geometry->IndexBufferUploader);
+        
+        geometry->VertexByteStride = sizeof(Vertex);
+        geometry->VertexBufferByteSize = vertexBufferByteSize;
+        geometry->IndexFormat = DXGI_FORMAT_R16_UINT;
+        geometry->IndexBufferByteSize = indexBufferByteSize;
+        
+        SubmeshGeometry submesh{};
+        submesh.IndexCount = static_cast<UINT>(indices.size());
+        submesh.StartIndexLocation = 0;
+        submesh.BaseVertexLocation = 0;
+        
+        geometry->DrawArgs["crate"] = submesh;
+        
+        m_Geometries["crateGeo"] = std::move(geometry);
     }
 
     float CrateApplication::GetHillsHeight(float x, float z)
@@ -806,6 +864,18 @@ namespace Studies
         landRenderItem->BaseVertexLocation = landRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
         m_AllRenderItems.emplace_back(std::move(landRenderItem));
         
+        std::unique_ptr<RenderItem> crateRenderItem = std::make_unique<RenderItem>();
+        DirectX::XMMATRIX crateMatrix = DirectX::XMMatrixTranslation(0.0f, 1.0f, 0.0f);
+        DirectX::XMStoreFloat4x4(&crateRenderItem->WorldMatrix, crateMatrix);
+        crateRenderItem->ObjectConstantBufferIndex = 2;
+        crateRenderItem->Material = m_Materials["crate"].get();
+        crateRenderItem->Geometry = m_Geometries["crateGeo"].get();
+        crateRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        crateRenderItem->IndexCount = crateRenderItem->Geometry->DrawArgs["crate"].IndexCount;
+        crateRenderItem->StartIndexLocation = crateRenderItem->Geometry->DrawArgs["crate"].StartIndexLocation;
+        crateRenderItem->BaseVertexLocation = crateRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
+        m_AllRenderItems.emplace_back(std::move(crateRenderItem));
+
         // All render items are opaque in this demo
         for (const auto& renderItem : m_AllRenderItems)
         {
@@ -819,7 +889,7 @@ namespace Studies
         
         // Exercise 8.16.6
         D3D_SHADER_MACRO defines[] = {
-            "TOON_SHADING", "1", 
+            "TOON_SHADING", "0", 
             nullptr, nullptr
         };
 
@@ -829,7 +899,8 @@ namespace Studies
         m_InputElementDescriptions = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
             {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+            {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+            {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         };
     }
 

@@ -67,6 +67,7 @@ struct VertexIn
     float3 PosLocal : POSITION; 
     float4 Color : COLOR;
     float3 NormalLocal : NORMAL;
+    float2 TexCoord : TEXCOORD;
 };
 
 struct VertexOut
@@ -74,6 +75,7 @@ struct VertexOut
     float4 PosHomogeneousClip : SV_POSITION;
     float3 PosWorld : POSITION;
     float3 NormalWorld : NORMAL;
+    float2 TexCoord : TEXCOORD;
 };
 
 float GetEaseInSineTime(float normalizedTime);

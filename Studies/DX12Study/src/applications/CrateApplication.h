@@ -86,6 +86,7 @@ namespace Studies
         void SetupMaterials();
         void SetupLandGeometry();
         void SetupWaves();
+        void SetupCrate();
         void SetupRenderItems();
         void SetupShaderAndInputLayout();
         void CreatePipelineStateObjects();
