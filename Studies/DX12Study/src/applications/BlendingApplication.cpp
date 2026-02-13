@@ -157,6 +157,10 @@ namespace Studies
         
         DrawRenderItems(*m_CommandList.Get(), m_OpaqueRenderItems);
         
+        // For performance, we should only enable blending when needed
+        m_CommandList->SetPipelineState(m_PipelineStateObjects["transparent"].Get());
+        DrawRenderItems(*m_CommandList.Get(), m_TransparentRenderItems);
+        
         CD3DX12_RESOURCE_BARRIER backBufferTransitionToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
             GetCurrentBackBuffer(),
             D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -615,7 +619,8 @@ namespace Studies
         water->Name = "water";
         water->MaterialCbIndex = 1;
         water->DiffuseSrvHeapIndex = 2;
-        water->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};        water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
+        water->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 0.7f};
+        water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
         water->Roughness = 0.f;
         
         std::unique_ptr<Material> crate = std::make_unique<Material>();
@@ -919,6 +924,7 @@ namespace Studies
         
         m_WavesRenderItem = wavesRenderItem.get();
         m_AllRenderItems.emplace_back(std::move(wavesRenderItem));
+        m_TransparentRenderItems.push_back(m_WavesRenderItem);
         
         std::unique_ptr<RenderItem> landRenderItem = std::make_unique<RenderItem>();
         landRenderItem->WorldMatrix = MathHelper::Identity4x4();
@@ -930,6 +936,7 @@ namespace Studies
         landRenderItem->IndexCount = landRenderItem->Geometry->DrawArgs["grid"].IndexCount;
         landRenderItem->StartIndexLocation = landRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
         landRenderItem->BaseVertexLocation = landRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
+        m_OpaqueRenderItems.push_back(landRenderItem.get());
         m_AllRenderItems.emplace_back(std::move(landRenderItem));
         
         std::unique_ptr<RenderItem> crateRenderItem = std::make_unique<RenderItem>();
@@ -941,13 +948,8 @@ namespace Studies
         crateRenderItem->IndexCount = crateRenderItem->Geometry->DrawArgs["crate"].IndexCount;
         crateRenderItem->StartIndexLocation = crateRenderItem->Geometry->DrawArgs["crate"].StartIndexLocation;
         crateRenderItem->BaseVertexLocation = crateRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
+        m_OpaqueRenderItems.push_back(crateRenderItem.get());
         m_AllRenderItems.emplace_back(std::move(crateRenderItem));
-
-        // All render items are opaque in this demo
-        for (const auto& renderItem : m_AllRenderItems)
-        {
-            m_OpaqueRenderItems.push_back(renderItem.get());
-        }
     }
     
     void BlendingApplication::SetupShaderAndInputLayout()
@@ -1010,5 +1012,49 @@ namespace Studies
         opaqueWireframeStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
         
         ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&opaqueWireframeStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["opaque_wireframe"])));
+        
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPipelineStateDesc = opaquePipelineStateDesc;
+        D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc{};
+        transparencyBlendDesc.BlendEnable = true;
+        // Logic operators instead of traditional blending equations, like AND, NOR, XOR...
+        // BlendEnable and LogicOpEnabled can't be enabled at the same time, we must choose one or another (same for BlendOp and LogicOp - NOOP when not used)
+        transparencyBlendDesc.LogicOpEnable = false;
+        
+        // Blending Equation
+        // C = Csrc (X) Fsrc [BlendOp] Cdst (X) Fdst
+        // Csrc = Color source, the color pixel shader has just computed
+        // (X) = Component wise multiplication
+        // Fsrc = Source factor to be used on the component wise multiplication (SrcBlend)
+        // [BlendOp] = BlendOp used, OP_ADD for example would turn into C = Csr (X) Fsrc + Cdst (X) Fdst
+        // Cdst = Color destination, the color pixel on current render target
+        // Fdst = Destination factor to be used on the component wise multiplication (DestBlend)
+        transparencyBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+        transparencyBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+        transparencyBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+
+        // We also have a separate similar blending equation for the alpha component 
+        // A = Asrc * Fsrc [BlendOpAlpha] Adst * Fdst
+        transparencyBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+        transparencyBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+        transparencyBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+
+        // NOOP since we have BlendEnabled
+        transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+        
+        // We can control which color channels in the back buffer are written after blending
+        // For example, we could disable writes to RGB channel and only write to alpha channel (D3D12_COLOR_WRITE_ENABLE_ALPHA) for some techniques
+        transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+        
+        // Multisample technique useful when rendering foliage or gate textures (requires multisample to be enabled - back buffer and depth buffer)
+        transparentPipelineStateDesc.BlendState.AlphaToCoverageEnable = false;
+        
+        // Direct3D supports rendering to 8 render targets simultaneously. If we set this flag to true, blending can be performed for each
+        // render target differently (different blend op, factors...). False means all render targets are going to use same D3D12_RENDER_TARGET_BLEND_DESC as the first
+        // element from BlendState.RenderTarget array
+        transparentPipelineStateDesc.BlendState.IndependentBlendEnable = false;
+
+        transparentPipelineStateDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
+        
+        ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&transparentPipelineStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["transparent"])));
     }
 }
