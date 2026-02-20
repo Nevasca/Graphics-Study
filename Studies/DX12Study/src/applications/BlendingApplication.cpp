@@ -157,6 +157,9 @@ namespace Studies
         
         DrawRenderItems(*m_CommandList.Get(), m_OpaqueRenderItems);
         
+        m_CommandList->SetPipelineState(m_PipelineStateObjects["alphaTested"].Get());
+        DrawRenderItems(*m_CommandList.Get(), m_AlphaTestedRenderItems);
+
         // For performance, we should only enable blending when needed
         m_CommandList->SetPipelineState(m_PipelineStateObjects["transparent"].Get());
         DrawRenderItems(*m_CommandList.Get(), m_TransparentRenderItems);
@@ -505,10 +508,21 @@ namespace Studies
             waterTexture->FileName.c_str(),
             waterTexture->Resource,
             waterTexture->UploadHeapResource));
+        
+        std::unique_ptr<Texture> wireFence = std::make_unique<Texture>();
+        wireFence->Name = "WireFence";
+        wireFence->FileName = L"data//textures//WireFence.dds";
+        
+        ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_Device.Get(),
+            m_CommandList.Get(),
+            wireFence->FileName.c_str(),
+            wireFence->Resource,
+            wireFence->UploadHeapResource));
 
         m_Textures["woodCrate"] = std::move(woodCrateTexture);
         m_Textures["grass"] = std::move(grassTexture);
         m_Textures["water"] = std::move(waterTexture);
+        m_Textures["wireFence"] = std::move(wireFence);
     }
 
     void BlendingApplication::CreateSRVDescriptorHeap()
@@ -631,9 +645,18 @@ namespace Studies
         crate->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
         crate->Roughness = 0.125f;
         
+        std::unique_ptr<Material> cage = std::make_unique<Material>();
+        cage->Name = "cage";
+        cage->MaterialCbIndex = 3;
+        cage->DiffuseSrvHeapIndex = 3;
+        cage->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+        cage->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
+        cage->Roughness = 0.125f;
+        
         m_Materials["grass"] = std::move(grass);
         m_Materials["water"] = std::move(water);
         m_Materials["crate"] = std::move(crate);
+        m_Materials["cage"] = std::move(cage);
     }
 
     void BlendingApplication::SetupLandGeometry()
@@ -950,20 +973,40 @@ namespace Studies
         crateRenderItem->BaseVertexLocation = crateRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
         m_OpaqueRenderItems.push_back(crateRenderItem.get());
         m_AllRenderItems.emplace_back(std::move(crateRenderItem));
+        
+        std::unique_ptr<RenderItem> cageRenderItem = std::make_unique<RenderItem>();
+        DirectX::XMStoreFloat4x4(&cageRenderItem->WorldMatrix, DirectX::XMMatrixTranslation(-12.0f, 1.0f, 0.0f));
+        cageRenderItem->ObjectConstantBufferIndex = 3;
+        cageRenderItem->Material = m_Materials["cage"].get();
+        cageRenderItem->Geometry = m_Geometries["crateGeo"].get();
+        cageRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        cageRenderItem->IndexCount = cageRenderItem->Geometry->DrawArgs["crate"].IndexCount;
+        cageRenderItem->StartIndexLocation = cageRenderItem->Geometry->DrawArgs["crate"].StartIndexLocation;
+        cageRenderItem->BaseVertexLocation = cageRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
+        m_AlphaTestedRenderItems.push_back(cageRenderItem.get());
+        m_AllRenderItems.emplace_back(std::move(cageRenderItem));
     }
     
     void BlendingApplication::SetupShaderAndInputLayout()
     {
-        const std::wstring shaderPath = L"data//shaders//crateApp.hlsl";
+        const std::wstring shaderPath = L"data//shaders//blendApp.hlsl";
         
         // Exercise 8.16.6
-        D3D_SHADER_MACRO defines[] = {
+        D3D_SHADER_MACRO defaultDefines[] = {
             "TOON_SHADING", "0", 
             nullptr, nullptr
         };
 
-        m_VertexShaderBytecode = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
-        m_PixelShaderBytecode = ShaderUtil::CompileShader(shaderPath, defines, "PS", "ps_5_0");
+        m_VertexShaderBytecodes["default"] = ShaderUtil::CompileShader(shaderPath, nullptr, "VS", "vs_5_0");
+        m_PixelShaderBytecodes["default"] = ShaderUtil::CompileShader(shaderPath, defaultDefines, "PS", "ps_5_0");
+        
+        D3D_SHADER_MACRO alphaTestedDefines[] = {
+            "ALPHA_TEST", "1", 
+            nullptr, nullptr
+        };
+
+        // There is a cost using alpha test, so we specialize the shader and only use it if we need it
+        m_PixelShaderBytecodes["alphaTested"] = ShaderUtil::CompileShader(shaderPath, alphaTestedDefines, "PS", "ps_5_0");
         
         m_InputElementDescriptions = {
             {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
@@ -986,13 +1029,13 @@ namespace Studies
         opaquePipelineStateDesc.pRootSignature = m_RootSignature.Get();
         
         opaquePipelineStateDesc.VS = {
-            m_VertexShaderBytecode->GetBufferPointer(),
-            m_VertexShaderBytecode->GetBufferSize()
+            m_VertexShaderBytecodes["default"]->GetBufferPointer(),
+            m_VertexShaderBytecodes["default"]->GetBufferSize()
         };
         
         opaquePipelineStateDesc.PS = {
-            m_PixelShaderBytecode->GetBufferPointer(),
-            m_PixelShaderBytecode->GetBufferSize()
+            m_PixelShaderBytecodes["default"]->GetBufferPointer(),
+            m_PixelShaderBytecodes["default"]->GetBufferSize()
         };
         
         opaquePipelineStateDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -1056,5 +1099,16 @@ namespace Studies
         transparentPipelineStateDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
         
         ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&transparentPipelineStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["transparent"])));
+        
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC alphaTestedPipelineStateDesc = opaquePipelineStateDesc;
+
+        alphaTestedPipelineStateDesc.PS = {
+        m_PixelShaderBytecodes["alphaTested"]->GetBufferPointer(),
+        m_PixelShaderBytecodes["alphaTested"]->GetBufferSize()
+        };
+
+        alphaTestedPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        
+        ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&alphaTestedPipelineStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["alphaTested"])));
     }
 }

@@ -102,6 +102,12 @@ VertexOut VS(VertexIn vertexIn)
 float4 PS(VertexOut pixelIn) : SV_Target
 {
     float4 diffuseAlbedo = gDiffuseMap.Sample(gSamplerAnisoWrap, pixelIn.TexCoord) * gDiffuseAlbedo;
+
+#if ALPHA_TEST
+    // Discard pixel if texture alpha < 0.1
+    // We do this test as soon as possible so that we can potentially exit the shader early, skipping the rest of shader code
+    clip(diffuseAlbedo.a - 0.1f);
+#endif
     
     // Interpolating normal can unnormalize it, so renormalize it
     pixelIn.NormalWorld = normalize(pixelIn.NormalWorld);
