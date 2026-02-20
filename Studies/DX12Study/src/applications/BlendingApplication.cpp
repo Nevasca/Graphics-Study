@@ -130,7 +130,7 @@ namespace Studies
         
         m_CommandList->ClearRenderTargetView(
             GetCurrentBackBufferView(),
-            DirectX::Colors::LightSteelBlue,
+            &m_MainPassConstants.gFogColor.x,
             0, nullptr);
         
         m_CommandList->ClearDepthStencilView(
@@ -993,6 +993,7 @@ namespace Studies
         
         // Exercise 8.16.6
         D3D_SHADER_MACRO defaultDefines[] = {
+            "FOG", "1",
             "TOON_SHADING", "0", 
             nullptr, nullptr
         };
@@ -1001,6 +1002,7 @@ namespace Studies
         m_PixelShaderBytecodes["default"] = ShaderUtil::CompileShader(shaderPath, defaultDefines, "PS", "ps_5_0");
         
         D3D_SHADER_MACRO alphaTestedDefines[] = {
+            "FOG", "1",
             "ALPHA_TEST", "1", 
             nullptr, nullptr
         };

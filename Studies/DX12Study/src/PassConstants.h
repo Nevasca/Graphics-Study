@@ -27,6 +27,11 @@ namespace Studies
         
         DirectX::XMFLOAT4 AmbientLight{0.f, 0.f, 0.f, 1.f};
         
+        DirectX::XMFLOAT4 gFogColor{0.7f, 0.7f, 0.7f, 1.f};
+        float gFogStart{5.f};
+        float gFogRange{150.f};
+        DirectX::XMFLOAT2 cbPerPassPad2;
+        
         // Indices [0, NUM_DIR_LIGHTS] are directional lights
         // Indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS + NUM_POINT_LIGHTS] are point lights
         // Indices [NUM_POINT_LIGHTS, NUM_POINT_LIGHTS + NUM_SPOT_LIGHTS] are spot lights for a maximum of MAX_LIGHTS per object

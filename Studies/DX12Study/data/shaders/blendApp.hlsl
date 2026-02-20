@@ -47,7 +47,7 @@ cbuffer cbPass : register(b2)
     float4x4 gViewProj;
     float4x4 gInvViewProj;
     float3 gEyePositionWorld;
-    float cbPerObjectPad1;
+    float cbPerPassPad1;
     float2 gRenderTargetSize;
     float2 gInvRenderTargetSize;
     float gNearZ;
@@ -56,6 +56,13 @@ cbuffer cbPass : register(b2)
     float gDeltaTime;
     
     float4 gAmbientLight;
+    
+    // Allow application to change fog parameters per frame
+    // For example, we may only use fog for certain times of day
+    float4 gFogColor;
+    float gFogStart;
+    float gFogRange;
+    float2 cbPerPassPad2;
 
     // Indices [0, NUM_DIR_LIGHTS] are directional lights
     // Indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS + NUM_POINT_LIGHTS] are point lights
@@ -113,7 +120,9 @@ float4 PS(VertexOut pixelIn) : SV_Target
     pixelIn.NormalWorld = normalize(pixelIn.NormalWorld);
     
     // Vector form point being lit to eye
-    float3 toEyeWorld = normalize(gEyePositionWorld - pixelIn.PosWorld);
+    float3 toEyeWorld = gEyePositionWorld - pixelIn.PosWorld;
+    float distToEye = length(toEyeWorld);
+    toEyeWorld /= distToEye; // normalize
     
     // Indirect lighting
     float4 ambient = gAmbientLight * diffuseAlbedo;
@@ -124,6 +133,11 @@ float4 PS(VertexOut pixelIn) : SV_Target
     float4 directLight = ComputeLighting(gLights, material, pixelIn.PosWorld, pixelIn.NormalWorld, toEyeWorld, shadowFactor);
     
     float4 litColor = ambient + directLight;
+    
+#if FOG
+    float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
+    litColor = lerp(litColor, gFogColor, fogAmount);
+#endif
     
     // Common convention to take alpha from diffuse material
     litColor.a = diffuseAlbedo.a;
