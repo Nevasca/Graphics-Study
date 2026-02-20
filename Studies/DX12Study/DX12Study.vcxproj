@@ -203,6 +203,7 @@
     <ClCompile Include="src\ShaderUtil.cpp" />
     <ClCompile Include="src\Vertex.cpp" />
     <ClCompile Include="src\VertexBufferUtil.cpp" />
+    <Content Include="data\shaders\blendApp.hlsl" />
     <Content Include="data\shaders\colorBoxDemo.hlsl" />
     <Content Include="data\shaders\colorShapesApp.hlsl" />
     <Content Include="data\shaders\crateApp.hlsl" />
