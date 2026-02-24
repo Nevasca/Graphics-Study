@@ -1089,6 +1089,7 @@ namespace Studies
         // We can control which color channels in the back buffer are written after blending
         // For example, we could disable writes to RGB channel and only write to alpha channel (D3D12_COLOR_WRITE_ENABLE_ALPHA) for some techniques
         transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+        //transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_BLUE | D3D12_COLOR_WRITE_ENABLE_ALPHA; // Exercise 10.10.5
         
         // Multisample technique useful when rendering foliage or gate textures (requires multisample to be enabled - back buffer and depth buffer)
         transparentPipelineStateDesc.BlendState.AlphaToCoverageEnable = false;
