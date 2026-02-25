@@ -101,5 +101,6 @@ namespace Studies
         
         void UpdateSun();
         void AnimateMaterials();
+        DirectX::XMFLOAT3 GetSunDirection();
     };
 }

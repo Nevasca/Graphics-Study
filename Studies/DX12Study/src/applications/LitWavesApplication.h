@@ -89,5 +89,6 @@ namespace Studies
         void UpdateMaterialConstantBuffers();
         
         void UpdateSun();
+        DirectX::XMFLOAT3 GetSunDirection();
     };
 }

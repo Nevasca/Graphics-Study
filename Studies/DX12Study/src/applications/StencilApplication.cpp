@@ -290,9 +290,8 @@ namespace Studies
         m_MainPassConstants.DeltaTime = m_Timer.GetDeltaTime();
         
         m_MainPassConstants.AmbientLight = DirectX::XMFLOAT4{0.08f, 0.14f, 0.17f, 1.f};
-        
-        DirectX::XMVECTOR lightDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
-        DirectX::XMStoreFloat3(&m_MainPassConstants.Lights[0].Direction, lightDirection);
+
+        m_MainPassConstants.Lights[0].Direction = GetSunDirection();
         m_MainPassConstants.Lights[0].Strength = DirectX::XMFLOAT3{0.8f, 0.8f, 0.7f};
 
         // Exercise 8.16.1
@@ -403,6 +402,17 @@ namespace Studies
         }
         
         m_SunPhi = MathHelper::Clamp(m_SunPhi, 0.1f, DirectX::XM_PIDIV2);
+    }
+
+    DirectX::XMFLOAT3 StencilApplication::GetSunDirection()
+    {
+        DirectX::XMVECTOR sunDirection = MathHelper::SphericalToCartesian(1.f, m_SunTheta, m_SunPhi);
+        sunDirection = DirectX::XMVectorMultiply(sunDirection, DirectX::XMVectorSet(-1.f, -1.f, -1.f, -1.f));
+
+        DirectX::XMFLOAT3 direction;
+        DirectX::XMStoreFloat3(&direction, sunDirection);
+
+        return direction;
     }
 
     void StencilApplication::CreateRootSignature()
