@@ -146,6 +146,7 @@
     <ClInclude Include="src\applications\LitShapesApplication.h" />
     <ClInclude Include="src\applications\LitWavesApplication.h" />
     <ClInclude Include="src\applications\ShapesApplication.h" />
+    <ClInclude Include="src\applications\StencilApplication.h" />
     <ClInclude Include="src\Constants.h" />
     <ClInclude Include="src\Demo.h" />
     <ClInclude Include="src\demos\BoxDemo.h" />
@@ -187,6 +188,7 @@
     <ClCompile Include="src\applications\LitShapesApplication.cpp" />
     <ClCompile Include="src\applications\LitWavesApplication.cpp" />
     <ClCompile Include="src\applications\ShapesApplication.cpp" />
+    <ClCompile Include="src\applications\StencilApplication.cpp" />
     <ClCompile Include="src\BoxApp.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
