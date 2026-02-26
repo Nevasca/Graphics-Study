@@ -85,7 +85,11 @@ namespace Studies
         void SetupCrate();
         void SetupRenderItems();
         void SetupShaderAndInputLayout();
+
         void CreatePipelineStateObjects();
+        void CreateWireframePSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
+        void CreateTransparentPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
+        void CreateAlphaTestedPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
         
         void UpdateMaterialConstantBuffers();
         

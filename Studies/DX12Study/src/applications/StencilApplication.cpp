@@ -881,12 +881,22 @@ namespace Studies
         
         ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&opaquePipelineStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["opaque"])));
         
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueWireframeStateDesc = opaquePipelineStateDesc;
+        CreateWireframePSO(opaquePipelineStateDesc);
+        CreateTransparentPSO(opaquePipelineStateDesc);
+        CreateAlphaTestedPSO(opaquePipelineStateDesc);
+    }
+
+    void StencilApplication::CreateWireframePSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc)
+    {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC opaqueWireframeStateDesc = templatePSODesc;
         opaqueWireframeStateDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
         
         ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&opaqueWireframeStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["opaque_wireframe"])));
-        
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPipelineStateDesc = opaquePipelineStateDesc;
+    }
+
+    void StencilApplication::CreateTransparentPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc)
+    {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPipelineStateDesc = templatePSODesc;
         D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc{};
         transparencyBlendDesc.BlendEnable = true;
         // Logic operators instead of traditional blending equations, like AND, NOR, XOR...
@@ -930,12 +940,15 @@ namespace Studies
         transparentPipelineStateDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
         
         ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&transparentPipelineStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["transparent"])));
-        
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC alphaTestedPipelineStateDesc = opaquePipelineStateDesc;
+    }
+
+    void StencilApplication::CreateAlphaTestedPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc)
+    {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC alphaTestedPipelineStateDesc = templatePSODesc;
 
         alphaTestedPipelineStateDesc.PS = {
-        m_PixelShaderBytecodes["alphaTested"]->GetBufferPointer(),
-        m_PixelShaderBytecodes["alphaTested"]->GetBufferSize()
+            m_PixelShaderBytecodes["alphaTested"]->GetBufferPointer(),
+            m_PixelShaderBytecodes["alphaTested"]->GetBufferSize()
         };
 
         alphaTestedPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
