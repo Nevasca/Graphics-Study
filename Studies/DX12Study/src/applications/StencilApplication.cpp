@@ -62,8 +62,8 @@ namespace Studies
         FlushCommandQueue();
         
         m_Radius = m_MaxZoomRadius / 2.f;
-        m_SunTheta = 5.6f;
-        m_SunPhi = 1.57f;
+        m_SunTheta = 8.52f;
+        m_SunPhi = 0.69f;
     }
 
     void StencilApplication::Tick()
