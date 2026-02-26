@@ -510,9 +510,20 @@ namespace Studies
             wireFence->Resource,
             wireFence->UploadHeapResource));
 
+        std::unique_ptr<Texture> ice = std::make_unique<Texture>();
+        ice->Name = "Ice";
+        ice->FileName = L"data//textures//Ice.dds";
+        
+        ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_Device.Get(),
+            m_CommandList.Get(),
+            ice->FileName.c_str(),
+            ice->Resource,
+            ice->UploadHeapResource));
+
         m_Textures["woodCrate"] = std::move(woodCrateTexture);
         m_Textures["grass"] = std::move(grassTexture);
         m_Textures["wireFence"] = std::move(wireFence);
+        m_Textures["Ice"] = std::move(ice);
     }
 
     void StencilApplication::CreateSRVDescriptorHeap()
@@ -630,10 +641,19 @@ namespace Studies
         wireFence->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
         wireFence->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
         wireFence->Roughness = 0.125f;
+
+        std::unique_ptr<Material> ice = std::make_unique<Material>();
+        ice->Name = "ice";
+        ice->MaterialCbIndex = 3;
+        ice->DiffuseSrvHeapIndex = 3;
+        ice->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+        ice->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
+        ice->Roughness = 0.125f;
         
         m_Materials["floor"] = std::move(floor);
         m_Materials["crate"] = std::move(crate);
         m_Materials["wireFence"] = std::move(wireFence);
+        m_Materials["ice"] = std::move(ice);
     }
 
     void StencilApplication::SetupRoomGeometry()
@@ -773,7 +793,7 @@ namespace Studies
         DirectX::XMStoreFloat4x4(&mirrorRenderItem->WorldMatrix, mirrorScaling * mirrorTranslation);
         mirrorRenderItem->TexTransform = MathHelper::Identity4x4();
         mirrorRenderItem->ObjectConstantBufferIndex = 2;
-        mirrorRenderItem->Material = m_Materials["crate"].get();
+        mirrorRenderItem->Material = m_Materials["ice"].get();
         mirrorRenderItem->Geometry = m_Geometries["cubeGeo"].get();
         mirrorRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
         mirrorRenderItem->IndexCount = mirrorRenderItem->Geometry->DrawArgs["cube"].IndexCount;

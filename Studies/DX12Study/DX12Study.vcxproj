@@ -213,6 +213,7 @@
     <Content Include="data\shaders\litShapesApp.hlsl" />
     <Content Include="data\shaders\litWavesApp.hlsl" />
     <Content Include="data\textures\Grass.dds" />
+    <Content Include="data\textures\Ice.dds" />
     <Content Include="data\textures\Water.dds" />
     <Content Include="data\textures\WireFence.dds" />
     <Content Include="data\textures\WoodCrate01.dds" />
