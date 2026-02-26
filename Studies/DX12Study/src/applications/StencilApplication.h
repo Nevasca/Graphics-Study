@@ -67,10 +67,6 @@ namespace Studies
         std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> m_PipelineStateObjects{};
         bool m_IsWireframe{false};
         
-        std::vector<std::unique_ptr<UploadBuffer<Vertex>>> m_WaveVerticesFrameResources;
-        std::unique_ptr<Waves> m_Waves;
-        RenderItem* m_WavesRenderItem{nullptr};
-        
         std::unordered_map<std::string, std::unique_ptr<Material>> m_Materials{};
         
         float m_SunTheta{1.25f * DirectX::XM_PI};
@@ -85,22 +81,15 @@ namespace Studies
         std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
         void SetupMaterials();
-        void SetupLandGeometry();
-        void SetupWaves();
+        void SetupRoomGeometry();
         void SetupCrate();
         void SetupRenderItems();
         void SetupShaderAndInputLayout();
         void CreatePipelineStateObjects();
         
-        float GetHillsHeight(float x, float z);
-        DirectX::XMFLOAT3 GetHillsNormal(float x, float z);
-        DirectX::XMFLOAT4 GetHillsColor(float y);
-        void UpdateWaves();
-
         void UpdateMaterialConstantBuffers();
         
         void UpdateSun();
-        void AnimateMaterials();
         DirectX::XMFLOAT3 GetSunDirection();
     };
 }

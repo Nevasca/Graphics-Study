@@ -42,8 +42,7 @@ namespace Studies
         CreateSRVViews();
 
         SetupMaterials();
-        SetupLandGeometry();
-        SetupWaves();
+        SetupRoomGeometry();
         SetupCrate();
         SetupRenderItems();
         CreateFrameResources();
@@ -76,12 +75,10 @@ namespace Studies
         
         UpdateCamera();
         UpdateSun();
-        AnimateMaterials();
 
         UpdateObjectConstantBuffers();
         UpdatePassConstantBuffer();
         UpdateMaterialConstantBuffers();
-        UpdateWaves();
         
         m_IsWireframe = Input::GetKeyboardKey('1'); 
 
@@ -479,12 +476,6 @@ namespace Studies
         {
             m_FrameResources.emplace_back(std::make_unique<FrameResource>(*m_Device.Get(), 1, objectCount, materialCount));
         }
-        
-        // To not add to the FrameResource class an application exclusive usage, decided to create it only on this application
-        for(int i = 0; i < Constants::NUM_FRAME_RESOURCES; i++)
-        {
-            m_WaveVerticesFrameResources.emplace_back(std::make_unique<UploadBuffer<Vertex>>(*m_Device.Get(), m_Waves->VertexCount(), false));
-        }
     }
 
     void StencilApplication::SetupTextures()
@@ -509,16 +500,6 @@ namespace Studies
             grassTexture->Resource,
             grassTexture->UploadHeapResource));
         
-        std::unique_ptr<Texture> waterTexture = std::make_unique<Texture>();
-        waterTexture->Name = "WaterTexture";
-        waterTexture->FileName = L"data//textures//Water.dds";
-        
-        ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_Device.Get(),
-            m_CommandList.Get(),
-            waterTexture->FileName.c_str(),
-            waterTexture->Resource,
-            waterTexture->UploadHeapResource));
-        
         std::unique_ptr<Texture> wireFence = std::make_unique<Texture>();
         wireFence->Name = "WireFence";
         wireFence->FileName = L"data//textures//WireFence.dds";
@@ -531,7 +512,6 @@ namespace Studies
 
         m_Textures["woodCrate"] = std::move(woodCrateTexture);
         m_Textures["grass"] = std::move(grassTexture);
-        m_Textures["water"] = std::move(waterTexture);
         m_Textures["wireFence"] = std::move(wireFence);
     }
 
@@ -627,76 +607,62 @@ namespace Studies
 
     void StencilApplication::SetupMaterials()
     {
-        std::unique_ptr<Material> grass = std::make_unique<Material>();
-        grass->Name = "grass";
-        grass->MaterialCbIndex = 0;
-        grass->DiffuseSrvHeapIndex = 1;
-        grass->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
-        grass->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
-        grass->Roughness = 0.125f;
-        
-        // Exercise 8.16.2
-        grass->Roughness = 0.875f;
-        
-        // Not a good water material, still some tools and techniques to learn
-        std::unique_ptr<Material> water = std::make_unique<Material>();
-        water->Name = "water";
-        water->MaterialCbIndex = 1;
-        water->DiffuseSrvHeapIndex = 2;
-        water->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 0.7f};
-        water->FresnelR0 = DirectX::XMFLOAT3{0.1f, 0.1f, 0.1f};
-        water->Roughness = 0.f;
+        std::unique_ptr<Material> floor = std::make_unique<Material>();
+        floor->Name = "floor";
+        floor->MaterialCbIndex = 0;
+        floor->DiffuseSrvHeapIndex = 1;
+        floor->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+        floor->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
+        floor->Roughness = 0.825f;
         
         std::unique_ptr<Material> crate = std::make_unique<Material>();
         crate->Name = "crate";
-        crate->MaterialCbIndex = 2;
+        crate->MaterialCbIndex = 1;
         crate->DiffuseSrvHeapIndex = 0;
         crate->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
         crate->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
         crate->Roughness = 0.125f;
+
+        std::unique_ptr<Material> wireFence = std::make_unique<Material>();
+        wireFence->Name = "wireFence";
+        wireFence->MaterialCbIndex = 2;
+        wireFence->DiffuseSrvHeapIndex = 2;
+        wireFence->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+        wireFence->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
+        wireFence->Roughness = 0.125f;
         
-        std::unique_ptr<Material> cage = std::make_unique<Material>();
-        cage->Name = "cage";
-        cage->MaterialCbIndex = 3;
-        cage->DiffuseSrvHeapIndex = 3;
-        cage->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
-        cage->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
-        cage->Roughness = 0.125f;
-        
-        m_Materials["grass"] = std::move(grass);
-        m_Materials["water"] = std::move(water);
+        m_Materials["floor"] = std::move(floor);
         m_Materials["crate"] = std::move(crate);
-        m_Materials["cage"] = std::move(cage);
+        m_Materials["wireFence"] = std::move(wireFence);
     }
 
-    void StencilApplication::SetupLandGeometry()
+    void StencilApplication::SetupRoomGeometry()
     {
         GeometryGenerator generator{};
         
-        GeometryGenerator::MeshData grid = generator.CreateGrid(160.f, 160.f, 50, 50);
+        GeometryGenerator::MeshData cube = generator.CreateBox(1.f, 1.f, 1.f, 0);
         
         // Extract the vertex elements we are interested and apply the height function to each vertex
         // also color vertices based on their heights so we have sand, grass and snow mountain peaks
         
-        std::vector<Vertex> vertices{grid.Vertices.size()};
-        for (size_t i = 0; i < grid.Vertices.size(); i++)
+        std::vector<Vertex> vertices{cube.Vertices.size()};
+        for (size_t i = 0; i < cube.Vertices.size(); i++)
         {
-            DirectX::XMFLOAT3 position = grid.Vertices[i].Position;
+            DirectX::XMFLOAT3 position = cube.Vertices[i].Position;
 
             vertices[i].Position = position;
-            vertices[i].Position.y = GetHillsHeight(position.x, position.z);
-            vertices[i].Color = GetHillsColor(vertices[i].Position.y);
-            vertices[i].Normal = GetHillsNormal(position.x, position.z);
-            vertices[i].TexCoord = grid.Vertices[i].TexC;
+            vertices[i].Color = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+            vertices[i].Normal = cube.Vertices[i].Normal;
+            vertices[i].TexCoord = cube.Vertices[i].TexC;
         }
         
         const UINT vertexBufferByteSize = static_cast<UINT>(vertices.size()) * sizeof(Vertex);
         
-        std::vector<uint16_t> indices = grid.GetIndices16();
+        std::vector<uint16_t> indices = cube.GetIndices16();
         const UINT indexBufferByteSize = static_cast<UINT>(indices.size()) * sizeof(uint16_t);
 
         std::unique_ptr<MeshGeometry> geometry = std::make_unique<MeshGeometry>();
-        geometry->Name = "landGeo";
+        geometry->Name = "cubeGeo";
         
         ThrowIfFailed(D3DCreateBlob(vertexBufferByteSize, &geometry->VertexBufferCPU));
         CopyMemory(geometry->VertexBufferCPU->GetBufferPointer(), vertices.data(), vertexBufferByteSize);
@@ -717,67 +683,9 @@ namespace Studies
         submesh.StartIndexLocation = 0;
         submesh.BaseVertexLocation = 0;
         
-        geometry->DrawArgs["grid"] = submesh;
+        geometry->DrawArgs["cube"] = submesh;
         
-        m_Geometries["landGeo"] = std::move(geometry);
-    }
-
-    void StencilApplication::SetupWaves()
-    {
-        m_Waves = std::make_unique<Waves>(128, 128, 1.f, 0.03f, 4.f, 0.2f);
-        
-        std::vector<std::uint16_t> indices(3 * m_Waves->TriangleCount()); // 3 indices per face
-        assert(m_Waves->TriangleCount() < 0x0000ffff);
-        
-        // Iterate over each quad
-        int m = m_Waves->RowCount();
-        int n = m_Waves->ColumnCount();
-        int k = 0;
-        
-        for (int i = 0; i < m - 1; i++)
-        {
-            for (int j = 0; j < n - 1; j++)
-            {
-                indices[k] = i * n + j;
-                indices[k + 1] = i * n + j + 1;
-                indices[k + 2] = (i + 1) * n + j;
-                
-                indices[k + 3] = (i + 1) * n + j;
-                indices[k + 4] = i * n + j + 1;
-                indices[k + 5] = (i + 1) * n + j + 1;
-                
-                k += 6; // Next quad
-            }
-        }
-        
-        UINT vertexBufferByteSize = m_Waves->VertexCount() * sizeof(Vertex);
-        UINT indexBufferByteSize = static_cast<UINT>(indices.size()) * sizeof(uint16_t);
-
-        std::unique_ptr<MeshGeometry> geometry = std::make_unique<MeshGeometry>();
-        geometry->Name = "waterGeo";
-        
-        // Set dynamically
-        geometry->VertexBufferCPU = nullptr;
-        geometry->VertexBufferGPU = nullptr;
-        
-        ThrowIfFailed(D3DCreateBlob(indexBufferByteSize, &geometry->IndexBufferCPU));
-        CopyMemory(geometry->IndexBufferCPU->GetBufferPointer(), indices.data(), indexBufferByteSize);
-        
-        geometry->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(m_Device.Get(), m_CommandList.Get(), indices.data(), indexBufferByteSize, geometry->IndexBufferUploader);
-        
-        geometry->VertexByteStride = sizeof(Vertex);
-        geometry->VertexBufferByteSize = vertexBufferByteSize;
-        geometry->IndexFormat = DXGI_FORMAT_R16_UINT;
-        geometry->IndexBufferByteSize = indexBufferByteSize;
-        
-        SubmeshGeometry submesh{};
-        submesh.IndexCount = static_cast<UINT>(indices.size());
-        submesh.StartIndexLocation = 0;
-        submesh.BaseVertexLocation = 0;
-        
-        geometry->DrawArgs["grid"] = submesh;
-        
-        m_Geometries["waterGeo"] = std::move(geometry);
+        m_Geometries["cubeGeo"] = std::move(geometry);
     }
 
     void StencilApplication::SetupCrate()
@@ -827,154 +735,56 @@ namespace Studies
         m_Geometries["crateGeo"] = std::move(geometry);
     }
 
-    float StencilApplication::GetHillsHeight(float x, float z)
-    {
-        return 0.3f * (z * sinf(0.1f * x) + x * cosf(0.1f * z));
-    }
-
-    DirectX::XMFLOAT3 StencilApplication::GetHillsNormal(float x, float z)
-    {
-        // n = (-df/dx, 1, -df/dz)
-
-        float normalX = -0.03f * z * cosf(0.1f * x) - 0.3f * cosf(0.1f * z);
-        float normalZ = -0.3f * sinf(0.1f * x) + 0.03f * x * sinf(0.1f * z);
-
-        DirectX::XMFLOAT3 normal{normalX, 1.f, normalZ};
-        DirectX::XMVECTOR unitNormal = DirectX::XMVector3Normalize(DirectX::XMLoadFloat3(&normal));
-        DirectX::XMStoreFloat3(&normal, unitNormal);
-        
-        return normal;
-    }
-
-    DirectX::XMFLOAT4 StencilApplication::GetHillsColor(float y)
-    {
-        if (y < -10.f)
-        {
-            // Sandy beach color
-            return DirectX::XMFLOAT4{1.f, 0.96f, 0.62f, 1.f};    
-        }
-
-        if (y < 5.f)
-        {
-            // Light yellow-green
-            return DirectX::XMFLOAT4{0.48f, 0.77f, 0.46f, 1.f};
-        }
-        
-        if (y < 12.f)
-        {
-            // Dark yellow-green
-            return DirectX::XMFLOAT4{0.1f, 0.48f, 0.19f, 1.f};
-        }
-        
-        if (y < 20.f)
-        {
-            // Dark brown
-            return DirectX::XMFLOAT4{0.45f, 0.39f, 0.34f, 1.f};
-        }
-        
-        // White snow
-        return DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
-    }
-
-    void StencilApplication::UpdateWaves()
-    {
-        // Every quarter second, generate a random wave
-        static float timeBase = 0.f;
-
-        if (m_Timer.GetTime() - timeBase > 0.25f)
-        {
-            timeBase += 0.25f;
-            int i = MathHelper::Rand(4, m_Waves->RowCount() - 5);
-            int j = MathHelper::Rand(4, m_Waves->ColumnCount() - 5);
-            
-            float r = MathHelper::RandF(0.2f, 0.5f);
-            
-            m_Waves->Disturb(i, j, r);
-        }
-        
-        m_Waves->Update(m_Timer.GetDeltaTime());
-        
-        // Update the wave vertex buffer with the new solution
-        UploadBuffer<Vertex>* currentWavesVertexBuffer = m_WaveVerticesFrameResources[m_CurrentFrameResourceIndex].get();
-        
-        for (int i = 0; i < m_Waves->VertexCount(); i++)
-        {
-            Vertex vertex{};
-            vertex.Position = m_Waves->Position(i);
-            vertex.Color = DirectX::XMFLOAT4(DirectX::Colors::Blue);
-            vertex.Normal = m_Waves->Normal(i);
-            
-            // Derives tex-coord from position by
-            // mapping [-w/2, w/2] -> [0,1]
-            vertex.TexCoord.x = 0.5f + vertex.Position.x / m_Waves->Width();
-            vertex.TexCoord.y = 0.5f + vertex.Position.z / m_Waves->Depth();
-            
-            currentWavesVertexBuffer->CopyData(i, vertex);
-        }
-        
-        // Set the dynamic vertex buffer of the wave render item to the current frame vertex buffer
-        m_WavesRenderItem->Geometry->VertexBufferGPU = currentWavesVertexBuffer->GetResource();
-    }
-
-    void StencilApplication::AnimateMaterials()
-    {
-        // Scroll water texture coordinates
-        Material* waterMaterial = m_Materials["water"].get();
-        
-        float& tu = waterMaterial->MatTransform(3, 0);
-        float& tv = waterMaterial->MatTransform(3, 1);
-        
-        tu += 0.1f * m_Timer.GetDeltaTime();
-        tv += 0.02f * m_Timer.GetDeltaTime();
-        
-        if (tu >= 1.f)
-        {
-            tu -= 1.f;
-        }
-        
-        if (tv >= 1.f)
-        {
-            tv -= 1.f;
-        }
-        
-        waterMaterial->MatTransform(3, 0) = tu;
-        waterMaterial->MatTransform(3, 1) = tv;
-        
-        waterMaterial->NumFramesDirty = Constants::NUM_FRAME_RESOURCES;
-    }
-
     void StencilApplication::SetupRenderItems()
     {
-        std::unique_ptr<RenderItem> wavesRenderItem = std::make_unique<RenderItem>();
-        wavesRenderItem->WorldMatrix = MathHelper::Identity4x4();
-        wavesRenderItem->ObjectConstantBufferIndex = 0;
-        wavesRenderItem->Material = m_Materials["water"].get();
-        wavesRenderItem->Geometry = m_Geometries["waterGeo"].get();
-        wavesRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        wavesRenderItem->IndexCount = wavesRenderItem->Geometry->DrawArgs["grid"].IndexCount;
-        wavesRenderItem->StartIndexLocation = wavesRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
-        wavesRenderItem->BaseVertexLocation = wavesRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
-        
-        m_WavesRenderItem = wavesRenderItem.get();
-        m_AllRenderItems.emplace_back(std::move(wavesRenderItem));
-        m_TransparentRenderItems.push_back(m_WavesRenderItem);
-        
-        std::unique_ptr<RenderItem> landRenderItem = std::make_unique<RenderItem>();
-        landRenderItem->WorldMatrix = MathHelper::Identity4x4();
-        DirectX::XMStoreFloat4x4(&landRenderItem->TexTransform, DirectX::XMMatrixScaling(5.f, 5.f, 1.f));
-        landRenderItem->ObjectConstantBufferIndex = 1;
-        landRenderItem->Material = m_Materials["grass"].get();
-        landRenderItem->Geometry = m_Geometries["landGeo"].get();
-        landRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        landRenderItem->IndexCount = landRenderItem->Geometry->DrawArgs["grid"].IndexCount;
-        landRenderItem->StartIndexLocation = landRenderItem->Geometry->DrawArgs["grid"].StartIndexLocation;
-        landRenderItem->BaseVertexLocation = landRenderItem->Geometry->DrawArgs["grid"].BaseVertexLocation;
-        m_OpaqueRenderItems.push_back(landRenderItem.get());
-        m_AllRenderItems.emplace_back(std::move(landRenderItem));
+        std::unique_ptr<RenderItem> floorRenderItem = std::make_unique<RenderItem>();
+        DirectX::XMStoreFloat4x4(&floorRenderItem->WorldMatrix, DirectX::XMMatrixScaling(50.f, 1.f, 50.f));
+        DirectX::XMMATRIX floorTexScaling = DirectX::XMMatrixScaling(2.f, 2.f, 1.f);
+        DirectX::XMStoreFloat4x4(&floorRenderItem->TexTransform, floorTexScaling);
+        floorRenderItem->ObjectConstantBufferIndex = 0;
+        floorRenderItem->Material = m_Materials["floor"].get();
+        floorRenderItem->Geometry = m_Geometries["cubeGeo"].get();
+        floorRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        floorRenderItem->IndexCount = floorRenderItem->Geometry->DrawArgs["cube"].IndexCount;
+        floorRenderItem->StartIndexLocation = floorRenderItem->Geometry->DrawArgs["cube"].StartIndexLocation;
+        floorRenderItem->BaseVertexLocation = floorRenderItem->Geometry->DrawArgs["cube"].BaseVertexLocation;
+        m_OpaqueRenderItems.push_back(floorRenderItem.get());
+        m_AllRenderItems.emplace_back(std::move(floorRenderItem));
+
+        std::unique_ptr<RenderItem> wallRenderItem = std::make_unique<RenderItem>();
+        DirectX::XMMATRIX wallScaling = DirectX::XMMatrixScaling(1.f, 25.f, 50.f);
+        DirectX::XMMATRIX wallTranslation = DirectX::XMMatrixTranslation(25.f, 12.5f, 0.f);
+        DirectX::XMStoreFloat4x4(&wallRenderItem->WorldMatrix, wallScaling * wallTranslation);
+        DirectX::XMMATRIX wallTexScaling = DirectX::XMMatrixScaling(10.f, 5.f, 1.f);
+        DirectX::XMStoreFloat4x4(&wallRenderItem->TexTransform, wallTexScaling);
+        wallRenderItem->ObjectConstantBufferIndex = 1;
+        wallRenderItem->Material = m_Materials["wireFence"].get();
+        wallRenderItem->Geometry = m_Geometries["cubeGeo"].get();
+        wallRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        wallRenderItem->IndexCount = wallRenderItem->Geometry->DrawArgs["cube"].IndexCount;
+        wallRenderItem->StartIndexLocation = wallRenderItem->Geometry->DrawArgs["cube"].StartIndexLocation;
+        wallRenderItem->BaseVertexLocation = wallRenderItem->Geometry->DrawArgs["cube"].BaseVertexLocation;
+        m_TransparentRenderItems.push_back(wallRenderItem.get());
+        m_AllRenderItems.emplace_back(std::move(wallRenderItem));
+
+        std::unique_ptr<RenderItem> mirrorRenderItem = std::make_unique<RenderItem>();
+        DirectX::XMMATRIX mirrorScaling = DirectX::XMMatrixScaling(0.5f, 20.f, 15.f);
+        DirectX::XMMATRIX mirrorTranslation = DirectX::XMMatrixTranslation(24.5f, 10.f, 0.f);
+        DirectX::XMStoreFloat4x4(&mirrorRenderItem->WorldMatrix, mirrorScaling * mirrorTranslation);
+        mirrorRenderItem->TexTransform = MathHelper::Identity4x4();
+        mirrorRenderItem->ObjectConstantBufferIndex = 2;
+        mirrorRenderItem->Material = m_Materials["crate"].get();
+        mirrorRenderItem->Geometry = m_Geometries["cubeGeo"].get();
+        mirrorRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        mirrorRenderItem->IndexCount = mirrorRenderItem->Geometry->DrawArgs["cube"].IndexCount;
+        mirrorRenderItem->StartIndexLocation = mirrorRenderItem->Geometry->DrawArgs["cube"].StartIndexLocation;
+        mirrorRenderItem->BaseVertexLocation = mirrorRenderItem->Geometry->DrawArgs["cube"].BaseVertexLocation;
+        m_OpaqueRenderItems.push_back(mirrorRenderItem.get());
+        m_AllRenderItems.emplace_back(std::move(mirrorRenderItem));
         
         std::unique_ptr<RenderItem> crateRenderItem = std::make_unique<RenderItem>();
-        DirectX::XMStoreFloat4x4(&crateRenderItem->WorldMatrix, DirectX::XMMatrixTranslation(-4.0f, 1.0f, 0.0f));
-        crateRenderItem->ObjectConstantBufferIndex = 2;
+        DirectX::XMStoreFloat4x4(&crateRenderItem->WorldMatrix, DirectX::XMMatrixTranslation(0.f, 3.5f, 0.0f));
+        crateRenderItem->ObjectConstantBufferIndex = 3;
         crateRenderItem->Material = m_Materials["crate"].get();
         crateRenderItem->Geometry = m_Geometries["crateGeo"].get();
         crateRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -983,18 +793,6 @@ namespace Studies
         crateRenderItem->BaseVertexLocation = crateRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
         m_OpaqueRenderItems.push_back(crateRenderItem.get());
         m_AllRenderItems.emplace_back(std::move(crateRenderItem));
-        
-        std::unique_ptr<RenderItem> cageRenderItem = std::make_unique<RenderItem>();
-        DirectX::XMStoreFloat4x4(&cageRenderItem->WorldMatrix, DirectX::XMMatrixTranslation(-12.0f, 1.0f, 0.0f));
-        cageRenderItem->ObjectConstantBufferIndex = 3;
-        cageRenderItem->Material = m_Materials["cage"].get();
-        cageRenderItem->Geometry = m_Geometries["crateGeo"].get();
-        cageRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-        cageRenderItem->IndexCount = cageRenderItem->Geometry->DrawArgs["crate"].IndexCount;
-        cageRenderItem->StartIndexLocation = cageRenderItem->Geometry->DrawArgs["crate"].StartIndexLocation;
-        cageRenderItem->BaseVertexLocation = cageRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
-        m_AlphaTestedRenderItems.push_back(cageRenderItem.get());
-        m_AllRenderItems.emplace_back(std::move(cageRenderItem));
     }
     
     void StencilApplication::SetupShaderAndInputLayout()
@@ -1003,7 +801,7 @@ namespace Studies
         
         // Exercise 8.16.6
         D3D_SHADER_MACRO defaultDefines[] = {
-            "FOG", "1",
+            "FOG", "0",
             "TOON_SHADING", "0", 
             nullptr, nullptr
         };
@@ -1012,7 +810,7 @@ namespace Studies
         m_PixelShaderBytecodes["default"] = ShaderUtil::CompileShader(shaderPath, defaultDefines, "PS", "ps_5_0");
         
         D3D_SHADER_MACRO alphaTestedDefines[] = {
-            "FOG", "1",
+            "FOG", "0",
             "ALPHA_TEST", "1", 
             nullptr, nullptr
         };
