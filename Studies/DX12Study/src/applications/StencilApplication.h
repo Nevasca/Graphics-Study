@@ -28,6 +28,8 @@ namespace Studies
         
         // Render items divided by PSO
         std::vector<RenderItem*> m_OpaqueRenderItems;
+        std::vector<RenderItem*> m_Mirrors;
+        std::vector<RenderItem*> m_Reflected;
         std::vector<RenderItem*> m_TransparentRenderItems;
         std::vector<RenderItem*> m_AlphaTestedRenderItems;
 
@@ -90,6 +92,8 @@ namespace Studies
         void CreateWireframePSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
         void CreateTransparentPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
         void CreateAlphaTestedPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
+        void CreateStencilMirrorPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
+        void CreateStencilReflectionPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc);
         
         void UpdateMaterialConstantBuffers();
         

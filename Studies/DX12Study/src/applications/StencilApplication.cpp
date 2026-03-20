@@ -157,6 +157,13 @@ namespace Studies
         m_CommandList->SetPipelineState(m_PipelineStateObjects["alphaTested"].Get());
         DrawRenderItems(*m_CommandList.Get(), m_AlphaTestedRenderItems);
 
+        m_CommandList->OMSetStencilRef(1);
+        m_CommandList->SetPipelineState(m_PipelineStateObjects["markStencilMirrors"].Get());
+        DrawRenderItems(*m_CommandList.Get(), m_Mirrors);
+
+        m_CommandList->SetPipelineState(m_PipelineStateObjects["drawStencilReflections"].Get());
+        DrawRenderItems(*m_CommandList.Get(), m_Reflected);
+
         // For performance, we should only enable blending when needed
         m_CommandList->SetPipelineState(m_PipelineStateObjects["transparent"].Get());
         DrawRenderItems(*m_CommandList.Get(), m_TransparentRenderItems);
@@ -646,7 +653,7 @@ namespace Studies
         ice->Name = "ice";
         ice->MaterialCbIndex = 3;
         ice->DiffuseSrvHeapIndex = 3;
-        ice->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 1.f};
+        ice->DiffuseAlbedo = DirectX::XMFLOAT4{1.f, 1.f, 1.f, 0.7f};
         ice->FresnelR0 = DirectX::XMFLOAT3{0.01f, 0.01f, 0.01f};
         ice->Roughness = 0.125f;
         
@@ -758,7 +765,7 @@ namespace Studies
     void StencilApplication::SetupRenderItems()
     {
         std::unique_ptr<RenderItem> floorRenderItem = std::make_unique<RenderItem>();
-        DirectX::XMStoreFloat4x4(&floorRenderItem->WorldMatrix, DirectX::XMMatrixScaling(50.f, 1.f, 50.f));
+        DirectX::XMStoreFloat4x4(&floorRenderItem->WorldMatrix, DirectX::XMMatrixScaling(80.f, 1.f, 50.f));
         DirectX::XMMATRIX floorTexScaling = DirectX::XMMatrixScaling(2.f, 2.f, 1.f);
         DirectX::XMStoreFloat4x4(&floorRenderItem->TexTransform, floorTexScaling);
         floorRenderItem->ObjectConstantBufferIndex = 0;
@@ -789,7 +796,7 @@ namespace Studies
 
         std::unique_ptr<RenderItem> mirrorRenderItem = std::make_unique<RenderItem>();
         DirectX::XMMATRIX mirrorScaling = DirectX::XMMatrixScaling(0.5f, 20.f, 15.f);
-        DirectX::XMMATRIX mirrorTranslation = DirectX::XMMatrixTranslation(24.5f, 10.f, 0.f);
+        DirectX::XMMATRIX mirrorTranslation = DirectX::XMMatrixTranslation(0.0f, 10.f, 0.f);
         DirectX::XMStoreFloat4x4(&mirrorRenderItem->WorldMatrix, mirrorScaling * mirrorTranslation);
         mirrorRenderItem->TexTransform = MathHelper::Identity4x4();
         mirrorRenderItem->ObjectConstantBufferIndex = 2;
@@ -799,11 +806,13 @@ namespace Studies
         mirrorRenderItem->IndexCount = mirrorRenderItem->Geometry->DrawArgs["cube"].IndexCount;
         mirrorRenderItem->StartIndexLocation = mirrorRenderItem->Geometry->DrawArgs["cube"].StartIndexLocation;
         mirrorRenderItem->BaseVertexLocation = mirrorRenderItem->Geometry->DrawArgs["cube"].BaseVertexLocation;
-        m_OpaqueRenderItems.push_back(mirrorRenderItem.get());
+        m_Mirrors.push_back(mirrorRenderItem.get());
+        m_TransparentRenderItems.push_back(mirrorRenderItem.get());
         m_AllRenderItems.emplace_back(std::move(mirrorRenderItem));
         
         std::unique_ptr<RenderItem> crateRenderItem = std::make_unique<RenderItem>();
-        DirectX::XMStoreFloat4x4(&crateRenderItem->WorldMatrix, DirectX::XMMatrixTranslation(0.f, 3.5f, 0.0f));
+        DirectX::XMMATRIX crateWorldMatrix = DirectX::XMMatrixTranslation(-15.f, 3.52f, 0.0f);
+        DirectX::XMStoreFloat4x4(&crateRenderItem->WorldMatrix, crateWorldMatrix);
         crateRenderItem->ObjectConstantBufferIndex = 3;
         crateRenderItem->Material = m_Materials["crate"].get();
         crateRenderItem->Geometry = m_Geometries["crateGeo"].get();
@@ -812,7 +821,22 @@ namespace Studies
         crateRenderItem->StartIndexLocation = crateRenderItem->Geometry->DrawArgs["crate"].StartIndexLocation;
         crateRenderItem->BaseVertexLocation = crateRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
         m_OpaqueRenderItems.push_back(crateRenderItem.get());
+
+        std::unique_ptr<RenderItem> reflectedCrateRenderItem = std::make_unique<RenderItem>();
+        DirectX::XMVECTOR mirrorPlane = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f); // xy plane
+        DirectX::XMMATRIX R = DirectX::XMMatrixReflect(mirrorPlane);
+        DirectX::XMStoreFloat4x4(&reflectedCrateRenderItem->WorldMatrix, crateWorldMatrix * R);
+        reflectedCrateRenderItem->ObjectConstantBufferIndex = 4;
+        reflectedCrateRenderItem->Material = m_Materials["crate"].get();
+        reflectedCrateRenderItem->Geometry = m_Geometries["crateGeo"].get();
+        reflectedCrateRenderItem->PrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        reflectedCrateRenderItem->IndexCount = reflectedCrateRenderItem->Geometry->DrawArgs["crate"].IndexCount;
+        reflectedCrateRenderItem->StartIndexLocation = reflectedCrateRenderItem->Geometry->DrawArgs["crate"].StartIndexLocation;
+        reflectedCrateRenderItem->BaseVertexLocation = reflectedCrateRenderItem->Geometry->DrawArgs["crate"].BaseVertexLocation;
+        m_Reflected.push_back(reflectedCrateRenderItem.get());
+
         m_AllRenderItems.emplace_back(std::move(crateRenderItem));
+        m_AllRenderItems.emplace_back(std::move(reflectedCrateRenderItem));
     }
     
     void StencilApplication::SetupShaderAndInputLayout()
@@ -884,6 +908,8 @@ namespace Studies
         CreateWireframePSO(opaquePipelineStateDesc);
         CreateTransparentPSO(opaquePipelineStateDesc);
         CreateAlphaTestedPSO(opaquePipelineStateDesc);
+        CreateStencilMirrorPSO(opaquePipelineStateDesc);
+        CreateStencilReflectionPSO(opaquePipelineStateDesc);
     }
 
     void StencilApplication::CreateWireframePSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc)
@@ -954,5 +980,76 @@ namespace Studies
         alphaTestedPipelineStateDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         
         ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&alphaTestedPipelineStateDesc, IID_PPV_ARGS(&m_PipelineStateObjects["alphaTested"])));
+    }
+
+    void StencilApplication::CreateStencilMirrorPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc)
+    {
+        // Stencil test equation:
+        // (StencilRef & StencilReadMask) comparisonFunction (StencilBufferValue & StencilReadMask)
+
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC mirrorPSODesc = templatePSODesc;
+
+        // Turn off render target writes, as we only want to write to stencil buffer on this pass
+        CD3DX12_BLEND_DESC blendDesc{D3D12_DEFAULT};
+        blendDesc.RenderTarget[0].RenderTargetWriteMask = 0;
+
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc;
+        // We want depth test enabled so mirror is blocked by objects in front of it, but we don't want to update the depth buffer
+        depthStencilDesc.DepthEnable = true;
+        depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+        depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+        depthStencilDesc.StencilEnable = true;
+        depthStencilDesc.StencilReadMask = 0xff;
+        depthStencilDesc.StencilWriteMask = 0xff;
+
+        // StencilFailOp: how stencil buffer should be updated when stencil test fails for a pixel fragment
+        // StencilDepthFailOp: how stencil buffer should be updated when stencil test passes but depth test fails
+        // StencilPassOp: how stencil buffer should be updated when both stencil and depth tests pass
+        // StencilFunc: defines the stencil test comparison function
+        depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+        depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+        // We are not rendering backfacing polygons, so these settings do not matter
+        depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
+        depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+        mirrorPSODesc.BlendState = blendDesc;
+        mirrorPSODesc.DepthStencilState = depthStencilDesc;
+
+        ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&mirrorPSODesc, IID_PPV_ARGS(&m_PipelineStateObjects["markStencilMirrors"])));
+    }
+
+    void StencilApplication::CreateStencilReflectionPSO(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& templatePSODesc)
+    {
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC reflectionPSODesc = templatePSODesc;
+        
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+        depthStencilDesc.DepthEnable = true;
+        depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+        depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+        depthStencilDesc.StencilEnable = true;
+        depthStencilDesc.StencilReadMask = 0xff;
+        depthStencilDesc.StencilWriteMask = 0xff;
+
+        depthStencilDesc.FrontFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.FrontFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+
+        // We are not rendering backfacing polygons, so these settings do not matter
+        depthStencilDesc.BackFace.StencilFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.BackFace.StencilPassOp = D3D12_STENCIL_OP_KEEP;
+        depthStencilDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_EQUAL;
+
+        reflectionPSODesc.DepthStencilState = depthStencilDesc;
+        reflectionPSODesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+        reflectionPSODesc.RasterizerState.FrontCounterClockwise = true;
+
+        ThrowIfFailed(m_Device->CreateGraphicsPipelineState(&reflectionPSODesc, IID_PPV_ARGS(&m_PipelineStateObjects["drawStencilReflections"])));
     }
 }
